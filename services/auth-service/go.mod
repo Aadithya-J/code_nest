@@ -6,7 +6,9 @@ toolchain go1.24.4
 
 require (
 	github.com/gin-gonic/gin v1.10.1
-	github.com/go-gormigrate/gormigrate/v2 v2.1.4
+	github.com/go-gormigrate/gormigrate/v2 v2.6.0
+	google.golang.org/grpc v1.57.0
+	github.com/aadithya/code_nest/proto v0.0.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/joho/godotenv v1.4.0
 	golang.org/x/crypto v0.41.0

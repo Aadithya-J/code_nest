@@ -25,6 +25,7 @@ type Config struct {
 }
 
 func LoadConfig() (Config, error) {
+	// load environment from .env if present
 	_ = godotenv.Load()
 	cfg := Config{}
 

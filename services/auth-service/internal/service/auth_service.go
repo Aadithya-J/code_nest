@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/aadithya/code_nest/services/auth-service/internal/repository"
@@ -16,6 +17,28 @@ type AuthService struct {
 	repo      *repository.UserRepo
 	jwtSecret string
 	oauthConf *oauth2.Config
+}
+
+// VerifyToken parses and validates a JWT, returning the subject (email) if valid
+func (s *AuthService) VerifyToken(tokenStr string) (string, error) {
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(s.jwtSecret), nil
+	})
+	if err != nil {
+		return "", err
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return "", errors.New("invalid token")
+	}
+	sub, ok := claims["sub"].(string)
+	if !ok {
+		return "", errors.New("invalid sub claim")
+	}
+	return sub, nil
 }
 
 func NewAuthService(repo *repository.UserRepo, jwtSecret string, oauthConf *oauth2.Config) *AuthService {
