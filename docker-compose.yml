@@ -1,0 +1,3 @@
+version: '3.8'
+services:
+  # Define local development versions of your microservices here

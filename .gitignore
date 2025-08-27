@@ -1,0 +1,11 @@
+# Binaries
+**/bin/
+
+# Dependencies
+**/node_modules/
+
+# IDE files
+.vscode/
+
+# Environment files
+.env
