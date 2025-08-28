@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/Aadithya-J/code_nest/proto;proto";
+
+// AuthService defines gRPC methods for authentication
+service AuthService {
+  // Signup creates a new user account
+  rpc Signup (SignupRequest) returns (AuthResponse) {}
+
+  // Login authenticates a user and returns a JWT token
+  rpc Login (LoginRequest) returns (AuthResponse) {}
+
+  // ValidateToken verifies a JWT and returns the user ID if valid
+  rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse) {}
+
+  // GetGoogleAuthURL retrieves the Google authentication URL
+  rpc GetGoogleAuthURL (GetGoogleAuthURLRequest) returns (GetGoogleAuthURLResponse) {}
+
+  // HandleGoogleCallback handles the callback from Google authentication
+  rpc HandleGoogleCallback (HandleGoogleCallbackRequest) returns (AuthResponse) {}
+}
+
+// Request for signing up a new user
+message SignupRequest {
+  string email = 1;
+  string password = 2;
+}
+
+// Request for logging in an existing user
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+// Response message containing the JWT token or error
+message AuthResponse {
+  string token = 1;
+  string error = 2;
+}
+
+// Request for validating a JWT token
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+// Response from validating a JWT token
+message ValidateTokenResponse {
+  bool valid = 1;
+  string userId = 2;
+  string error = 3;
+}
+
+// Request for retrieving the Google authentication URL
+message GetGoogleAuthURLRequest {
+  string state = 1;
+}
+
+// Response containing the Google authentication URL
+message GetGoogleAuthURLResponse {
+  string url = 1;
+}
+
+// Request for handling the Google authentication callback
+message HandleGoogleCallbackRequest {
+  string code = 1;
+}
