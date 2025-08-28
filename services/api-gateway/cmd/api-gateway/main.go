@@ -4,32 +4,55 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/Aadithya-J/code_nest/proto"
+	"github.com/Aadithya-J/code_nest/services/api-gateway/internal/config"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
-	}
-	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
-	if authServiceURL == "" {
-		authServiceURL = "localhost:50051"
-	}
+	cfg := config.LoadConfig()
 
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 
-	conn, err := grpc.Dial(authServiceURL, grpc.WithInsecure())
+	authConn, err := grpc.Dial(cfg.AuthSvcUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("failed to dial auth service: %v", err)
 	}
-	defer conn.Close()
-	authClient := proto.NewAuthServiceClient(conn)
+	defer authConn.Close()
+	authClient := proto.NewAuthServiceClient(authConn)
+
+	workspaceConn, err := grpc.Dial(cfg.WorkspaceSvcUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("failed to dial workspace service: %v", err)
+	}
+	defer workspaceConn.Close()
+	workspaceClient := proto.NewWorkspaceServiceClient(workspaceConn)
+
+	// Auth middleware
+	authMiddleware := func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
+			return
+		}
+
+		resp, err := authClient.ValidateToken(context.Background(), &proto.ValidateTokenRequest{Token: token})
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authentication failed: " + err.Error()})
+			return
+		}
+		if !resp.Valid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": resp.Error})
+			return
+		}
+
+		c.Set("user_id", resp.UserId)
+		c.Next()
+	}
 
 	auth := r.Group("/auth")
 	{
@@ -82,31 +105,69 @@ func main() {
 		})
 	}
 
-	r.GET("/protected", func(c *gin.Context) {
-		token := c.GetHeader("Authorization")
-		if token == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
-			return
-		}
+	workspace := r.Group("/workspace", authMiddleware)
+	{
+		workspace.POST("/projects", func(c *gin.Context) {
+			var req proto.CreateProjectRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			req.UserId = c.GetString("user_id")
+			resp, err := workspaceClient.CreateProject(context.Background(), &req)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, resp)
+		})
 
-		// call gRPC ValidateToken
-		resp, err := authClient.ValidateToken(context.Background(), &proto.ValidateTokenRequest{Token: token})
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authentication failed: " + err.Error()})
-			return
-		}
-		if !resp.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": resp.Error})
-			return
-		}
+		workspace.GET("/projects", func(c *gin.Context) {
+			req := proto.GetProjectsRequest{UserId: c.GetString("user_id")}
+			resp, err := workspaceClient.GetProjects(context.Background(), &req)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, resp)
+		})
 
-		// inject user
-		c.Set("user_id", resp.UserId)
-		c.JSON(http.StatusOK, gin.H{"message": "Hello " + resp.UserId})
+		workspace.PUT("/projects/:id", func(c *gin.Context) {
+			var req proto.UpdateProjectRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			req.Id = c.Param("id")
+			req.UserId = c.GetString("user_id")
+			resp, err := workspaceClient.UpdateProject(context.Background(), &req)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, resp)
+		})
+
+		workspace.DELETE("/projects/:id", func(c *gin.Context) {
+			req := proto.DeleteProjectRequest{
+				Id:     c.Param("id"),
+				UserId: c.GetString("user_id"),
+			}
+			resp, err := workspaceClient.DeleteProject(context.Background(), &req)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, resp)
+		})
+	}
+
+	r.GET("/protected", authMiddleware, func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "Hello " + c.GetString("user_id")})
 	})
 
-	log.Println("Starting API Gateway on :8080")
-	if err := r.Run(":8080"); err != nil {
+	log.Printf("Starting API Gateway on :%s", cfg.Port)
+	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatal(err)
 	}
 }
