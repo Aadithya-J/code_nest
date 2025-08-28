@@ -39,7 +39,6 @@ func main() {
 	}
 	authSvc := service.NewAuthService(repo, cfg.JWT.Secret, oauthConf)
 
-	// Start gRPC server
 	lis, err := net.Listen("tcp", ":"+cfg.Server.Port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
