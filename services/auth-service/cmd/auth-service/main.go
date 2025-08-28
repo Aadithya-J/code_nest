@@ -2,17 +2,18 @@ package main
 
 import (
 	"log"
+	"net"
 
-	"github.com/gin-gonic/gin"
+	"github.com/Aadithya-J/code_nest/proto"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/grpc"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/aadithya/code_nest/services/auth-service/config"
-	"github.com/aadithya/code_nest/services/auth-service/internal/api"
-	"github.com/aadithya/code_nest/services/auth-service/internal/repository"
-	"github.com/aadithya/code_nest/services/auth-service/internal/service"
+	"github.com/Aadithya-J/code_nest/services/auth-service/config"
+	"github.com/Aadithya-J/code_nest/services/auth-service/internal/repository"
+	"github.com/Aadithya-J/code_nest/services/auth-service/internal/service"
 )
 
 func main() {
@@ -37,22 +38,16 @@ func main() {
 		Endpoint:     google.Endpoint,
 	}
 	authSvc := service.NewAuthService(repo, cfg.JWT.Secret, oauthConf)
-	handler := api.NewHandler(authSvc)
 
-	r := gin.Default()
-
-	auth := r.Group("/auth")
-	{
-		auth.POST("/signup", handler.Signup)
-		auth.POST("/login", handler.Login)
-		auth.GET("/health", handler.Health)
-		auth.GET("/google/login", handler.GoogleLogin)
-		auth.GET("/google/callback", handler.GoogleCallback)
+	// Start gRPC server
+	lis, err := net.Listen("tcp", ":"+cfg.Server.Port)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
 	}
-
-	addr := ":" + cfg.Server.Port
-	log.Printf("Starting auth-service on %s", addr)
-	if err := r.Run(addr); err != nil {
-		log.Fatal(err)
+	s := grpc.NewServer()
+	proto.RegisterAuthServiceServer(s, authSvc)
+	log.Printf("gRPC server listening on :%s", cfg.Server.Port)
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve gRPC: %v", err)
 	}
 }

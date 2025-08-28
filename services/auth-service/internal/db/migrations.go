@@ -4,7 +4,7 @@ import (
 	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/gorm"
 
-	"github.com/aadithya/code_nest/services/auth-service/internal/repository"
+	"github.com/Aadithya-J/code_nest/services/auth-service/internal/repository"
 )
 
 func Migrations() []*gormigrate.Migration {
