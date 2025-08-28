@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-option go_package = "github.com/Aadithya-J/code_nest/proto;proto";
+option go_package = "./;proto";
 
 // AuthService defines gRPC methods for authentication
 service AuthService {
