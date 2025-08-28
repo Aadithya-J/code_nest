@@ -453,7 +453,8 @@ const file_auth_proto_rawDesc = "" +
 	"\x05Login\x12\x13.proto.LoginRequest\x1a\x13.proto.AuthResponse\"\x00\x12L\n" +
 	"\rValidateToken\x12\x1b.proto.ValidateTokenRequest\x1a\x1c.proto.ValidateTokenResponse\"\x00\x12U\n" +
 	"\x10GetGoogleAuthURL\x12\x1e.proto.GetGoogleAuthURLRequest\x1a\x1f.proto.GetGoogleAuthURLResponse\"\x00\x12Q\n" +
-	"\x14HandleGoogleCallback\x12\".proto.HandleGoogleCallbackRequest\x1a\x13.proto.AuthResponse\"\x00B-Z+github.com/Aadithya-J/code_nest/proto;protob\x06proto3"
+	"\x14HandleGoogleCallback\x12\".proto.HandleGoogleCallbackRequest\x1a\x13.proto.AuthResponse\"\x00B\n" +
+	"Z\b./;protob\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once

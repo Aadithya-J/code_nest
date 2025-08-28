@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./;proto";
+
+// The Workspace service definition.
+service WorkspaceService {
+  // Creates a new project for a user.
+  rpc CreateProject(CreateProjectRequest) returns (ProjectResponse);
+
+  // Retrieves a list of all projects for a specific user.
+  rpc GetProjects(GetProjectsRequest) returns (GetProjectsResponse);
+
+  // Updates an existing project's details.
+  rpc UpdateProject(UpdateProjectRequest) returns (ProjectResponse);
+
+  // Deletes a project by its ID.
+  rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
+}
+
+// Message Definitions
+
+// Represents a single project.
+message Project {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string userId = 4;
+  string createdAt = 5;
+  string updatedAt = 6;
+}
+
+// Requests & Responses
+
+message CreateProjectRequest {
+  string name = 1;
+  string description = 2;
+  string userId = 3; // Injected by API Gateway after auth.
+}
+
+message GetProjectsRequest {
+  string userId = 1; // Injected by API Gateway after auth.
+}
+
+message GetProjectsResponse {
+  repeated Project projects = 1;
+}
+
+message UpdateProjectRequest {
+  string id = 1; // ID of the project to update.
+  string name = 2;
+  string description = 3;
+  string userId = 4; // Injected by API Gateway for authorization check.
+}
+
+message DeleteProjectRequest {
+  string id = 1; // ID of the project to delete.
+  string userId = 2; // Injected by API Gateway for authorization check.
+}
+
+message DeleteProjectResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// A standard response that returns a single project.
+message ProjectResponse {
+  Project project = 1;
+}
