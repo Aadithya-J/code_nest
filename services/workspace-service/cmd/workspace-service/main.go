@@ -8,6 +8,7 @@ import (
 	"github.com/Aadithya-J/code_nest/proto"
 	"github.com/Aadithya-J/code_nest/services/workspace-service/internal/config"
 	"github.com/Aadithya-J/code_nest/services/workspace-service/internal/db"
+	"github.com/Aadithya-J/code_nest/services/workspace-service/internal/kafka"
 	"github.com/Aadithya-J/code_nest/services/workspace-service/internal/models"
 	"github.com/Aadithya-J/code_nest/services/workspace-service/internal/repository"
 	"github.com/Aadithya-J/code_nest/services/workspace-service/internal/service"
@@ -28,6 +29,11 @@ func main() {
 	}
 	log.Println("Migrations completed.")
 
+	// Initialize Kafka Producer
+	kafkaProducer := kafka.NewProducer(cfg.KafkaBrokerURL, cfg.KafkaTopic)
+	defer kafkaProducer.Close()
+	log.Println("Kafka producer initialized.")
+
 	// Create a listener
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.ServicePort))
 	if err != nil {
@@ -36,7 +42,7 @@ func main() {
 
 	// Create repository and service
 	projectRepo := repository.NewProjectRepository(gormDB)
-	workspaceSvc := service.NewWorkspaceService(projectRepo)
+	workspaceSvc := service.NewWorkspaceService(projectRepo, kafkaProducer)
 
 	// Create gRPC server
 	s := grpc.NewServer()

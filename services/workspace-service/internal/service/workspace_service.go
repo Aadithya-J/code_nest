@@ -2,23 +2,39 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/Aadithya-J/code_nest/proto"
+	"github.com/Aadithya-J/code_nest/services/workspace-service/internal/kafka"
 	"github.com/Aadithya-J/code_nest/services/workspace-service/internal/models"
 	"github.com/Aadithya-J/code_nest/services/workspace-service/internal/repository"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
 	"gorm.io/gorm"
 )
 
 type WorkspaceService struct {
 	proto.UnimplementedWorkspaceServiceServer
-	Repo *repository.ProjectRepository
+	Repo     *repository.ProjectRepository
+	Producer *kafka.Producer
 }
 
-func NewWorkspaceService(repo *repository.ProjectRepository) *WorkspaceService {
-	return &WorkspaceService{Repo: repo}
+func NewWorkspaceService(repo *repository.ProjectRepository, producer *kafka.Producer) *WorkspaceService {
+	return &WorkspaceService{Repo: repo, Producer: producer}
+}
+
+// Helper to publish events
+func (s *WorkspaceService) publishEvent(eventType string, project *models.Project) {
+	event := map[string]interface{}{
+		"type":    eventType,
+		"project": project,
+	}
+	payload, err := json.Marshal(event)
+	if err != nil {
+		// Log the error but don't block the main operation
+		return
+	}
+	go s.Producer.Publish(context.Background(), []byte(project.ID), payload)
 }
 
 func (s *WorkspaceService) CreateProject(ctx context.Context, req *proto.CreateProjectRequest) (*proto.ProjectResponse, error) {
@@ -31,6 +47,8 @@ func (s *WorkspaceService) CreateProject(ctx context.Context, req *proto.CreateP
 	if err := s.Repo.CreateProject(project); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create project: %v", err)
 	}
+
+	s.publishEvent("project.created", project)
 
 	return &proto.ProjectResponse{
 		Project: &proto.Project{
@@ -101,6 +119,8 @@ func (s *WorkspaceService) UpdateProject(ctx context.Context, req *proto.UpdateP
 		return nil, status.Errorf(codes.Internal, "failed to retrieve updated project: %v", err)
 	}
 
+	s.publishEvent("project.updated", updatedProject)
+
 	return &proto.ProjectResponse{
 		Project: &proto.Project{
 			Id:          updatedProject.ID,
@@ -116,7 +136,10 @@ func (s *WorkspaceService) UpdateProject(ctx context.Context, req *proto.UpdateP
 func (s *WorkspaceService) DeleteProject(ctx context.Context, req *proto.DeleteProjectRequest) (*proto.DeleteProjectResponse, error) {
 	project, err := s.Repo.GetProjectByID(req.Id)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "project not found")
+		if err == gorm.ErrRecordNotFound {
+			return nil, status.Errorf(codes.NotFound, "project not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to retrieve project: %v", err)
 	}
 
 	if project.UserID != req.UserId {
@@ -126,6 +149,8 @@ func (s *WorkspaceService) DeleteProject(ctx context.Context, req *proto.DeleteP
 	if err := s.Repo.DeleteProject(req.Id, req.UserId); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete project: %v", err)
 	}
+
+	s.publishEvent("project.deleted", project)
 
 	return &proto.DeleteProjectResponse{
 		Success: true,
