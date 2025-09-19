@@ -16,35 +16,32 @@ import (
 )
 
 func main() {
-	// Load configuration
 	cfg := config.LoadConfig()
 
-	// Initialize database
 	gormDB := db.Init(cfg.DatabaseURL)
 
-	// Auto-migrate models
+	createSchema := fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", cfg.DBSchema)
+	gormDB.Exec(createSchema)
+	gormDB.Exec(fmt.Sprintf("SET search_path TO %s", cfg.DBSchema))
+
 	log.Println("Running migrations...")
 	if err := gormDB.AutoMigrate(&models.Project{}); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 	log.Println("Migrations completed.")
 
-	// Initialize Kafka Producer
 	kafkaProducer := kafka.NewProducer(cfg.KafkaBrokerURL, cfg.KafkaTopicCmd)
 	defer kafkaProducer.Close()
 	log.Println("Kafka producer initialized.")
 
-	// Create a listener
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.ServicePort))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	// Create repository and service
 	projectRepo := repository.NewProjectRepository(gormDB)
 	workspaceSvc := service.NewWorkspaceService(projectRepo, kafkaProducer)
 
-	// Create gRPC server
 	s := grpc.NewServer()
 	proto.RegisterWorkspaceServiceServer(s, workspaceSvc)
 

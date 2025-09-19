@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	DatabaseURL    string
+	DBSchema       string
 	ServicePort    string
 	KafkaBrokerURL string
 	KafkaTopicCmd  string
@@ -41,8 +42,14 @@ func LoadConfig() *Config {
 		log.Printf("KAFKA_TOPIC_CMD not set, using default %s", kafkaTopic)
 	}
 
+	schema := os.Getenv("DB_SCHEMA")
+	if schema == "" {
+		schema = "workspace"
+	}
+
 	return &Config{
 		DatabaseURL:    dbURL,
+		DBSchema:       schema,
 		ServicePort:    port,
 		KafkaBrokerURL: kafkaBroker,
 		KafkaTopicCmd:  kafkaTopic,
