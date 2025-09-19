@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -24,45 +24,50 @@ type Config struct {
 	}
 }
 
-func LoadConfig() (Config, error) {
-	_ = godotenv.Load()
+func LoadConfig() Config {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
+	}
+
 	cfg := Config{}
 
 	port := os.Getenv("AUTH_SERVICE_PORT")
 	if port == "" {
-		port = "8081"
+		port = "50051" // Default gRPC port
+		log.Printf("AUTH_SERVICE_PORT not set, using default %s", port)
 	}
 	cfg.Server.Port = port
 
-	conn := os.Getenv("AUTH_DB_CONN")
+	conn := os.Getenv("DATABASE_URL") // Standardized
 	if conn == "" {
-		return cfg, fmt.Errorf("AUTH_DB_CONN env required")
+		log.Fatalf("DATABASE_URL env var required")
 	}
 	cfg.DB.ConnString = conn
 
-	secret := os.Getenv("AUTH_JWT_SECRET")
+	secret := os.Getenv("JWT_SECRET") // Standardized
 	if secret == "" {
-		return cfg, fmt.Errorf("AUTH_JWT_SECRET env required")
+		log.Fatalf("JWT_SECRET env var required")
 	}
 	cfg.JWT.Secret = secret
 
 	clientID := os.Getenv("GOOGLE_CLIENT_ID")
 	if clientID == "" {
-		return cfg, fmt.Errorf("GOOGLE_CLIENT_ID env required")
+		log.Fatalf("GOOGLE_CLIENT_ID env var required")
 	}
 	cfg.Google.ClientID = clientID
 
 	clientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
 	if clientSecret == "" {
-		return cfg, fmt.Errorf("GOOGLE_CLIENT_SECRET env required")
+		log.Fatalf("GOOGLE_CLIENT_SECRET env var required")
 	}
 	cfg.Google.ClientSecret = clientSecret
 
-	redirect := os.Getenv("AUTH_GOOGLE_REDIRECT_URL")
+	redirect := os.Getenv("GOOGLE_REDIRECT_URL")
 	if redirect == "" {
-		redirect = fmt.Sprintf("http://localhost:%s/auth/google/callback", cfg.Server.Port)
+		redirect = "http://localhost:8080/auth/google/callback"
+		log.Printf("GOOGLE_REDIRECT_URL not set, using default %s", redirect)
 	}
 	cfg.Google.RedirectURL = redirect
 
-	return cfg, nil
+	return cfg
 }

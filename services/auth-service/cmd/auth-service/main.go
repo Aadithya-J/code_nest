@@ -17,10 +17,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
-	}
+	cfg := config.LoadConfig()
 
 	db, err := gorm.Open(postgres.Open(cfg.DB.ConnString), &gorm.Config{})
 	if err != nil {

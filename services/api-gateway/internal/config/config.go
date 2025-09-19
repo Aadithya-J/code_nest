@@ -8,28 +8,35 @@ import (
 )
 
 type Config struct {
-	AuthSvcUrl         string
-	WorkspaceSvcUrl    string
-	Port               string
-	GoogleClientID     string
-	GoogleClientSecret string
-	GoogleRedirectURL  string
-	JwtSecret          string
+	AuthSvcUrl      string
+	WorkspaceSvcUrl string
+	Port            string
 }
 
 func LoadConfig() *Config {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
 
+	authSvcUrl := os.Getenv("AUTH_SERVICE_URL")
+	if authSvcUrl == "" {
+		log.Fatalf("AUTH_SERVICE_URL env var required")
+	}
+
+	workspaceSvcUrl := os.Getenv("WORKSPACE_SERVICE_URL")
+	if workspaceSvcUrl == "" {
+		log.Fatalf("WORKSPACE_SERVICE_URL env var required")
+	}
+
+	port := os.Getenv("API_GATEWAY_PORT")
+	if port == "" {
+		port = "8080" // Default port
+		log.Printf("API_GATEWAY_PORT not set, using default %s", port)
+	}
+
 	return &Config{
-		AuthSvcUrl:         os.Getenv("AUTH_SERVICE_URL"),
-		WorkspaceSvcUrl:    os.Getenv("WORKSPACE_SERVICE_URL"),
-		Port:               os.Getenv("PORT"),
-		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-		GoogleRedirectURL:  os.Getenv("AUTH_GOOGLE_REDIRECT_URL"),
-		JwtSecret:          os.Getenv("JWT_SECRET"),
+		AuthSvcUrl:      authSvcUrl,
+		WorkspaceSvcUrl: workspaceSvcUrl,
+		Port:            port,
 	}
 }

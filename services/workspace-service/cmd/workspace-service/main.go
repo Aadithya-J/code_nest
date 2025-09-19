@@ -30,7 +30,7 @@ func main() {
 	log.Println("Migrations completed.")
 
 	// Initialize Kafka Producer
-	kafkaProducer := kafka.NewProducer(cfg.KafkaBrokerURL, cfg.KafkaTopic)
+	kafkaProducer := kafka.NewProducer(cfg.KafkaBrokerURL, cfg.KafkaTopicCmd)
 	defer kafkaProducer.Close()
 	log.Println("Kafka producer initialized.")
 
