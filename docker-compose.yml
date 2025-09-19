@@ -1,3 +1,105 @@
 version: '3.8'
+
 services:
-  # Define local development versions of your microservices here
+  postgres:
+    image: postgres:14-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: code_nest_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  redpanda:
+    image: redpandadata/redpanda:v23.1.2
+    container_name: redpanda
+    command:
+      - redpanda
+      - start
+      - --smp 1
+      - --overprovisioned
+      - --memory 512MiB
+      - --node-id 0
+      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://redpanda:29092,OUTSIDE://localhost:9092
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    networks:
+      - app_network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: api_gateway
+    depends_on:
+      - auth-service
+      - workspace-service
+    environment:
+      - PORT=8080
+      - AUTH_SERVICE_ADDR=auth-service:50051
+      - WORKSPACE_SERVICE_ADDR=workspace-service:50052
+    ports:
+      - "8080:8080"
+    networks:
+      - app_network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: auth_service
+    depends_on:
+      - postgres
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_NAME=code_nest_db
+      - DB_PORT=5432
+    networks:
+      - app_network
+
+  workspace-service:
+    build:
+      context: .
+      dockerfile: services/workspace-service/Dockerfile
+    container_name: workspace_service
+    depends_on:
+      - postgres
+      - redpanda
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_NAME=code_nest_db
+      - DB_PORT=5432
+      - KAFKA_BROKERS=redpanda:29092
+    networks:
+      - app_network
+
+  execution-service:
+    build:
+      context: ./services/execution-service
+    container_name: execution_service
+    depends_on:
+      - redpanda
+    environment:
+      - KAFKA_BROKERS=redpanda:29092
+      - KIND_CLUSTER=false
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
