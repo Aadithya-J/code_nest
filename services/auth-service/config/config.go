@@ -13,6 +13,7 @@ type Config struct {
 	}
 	DB struct {
 		ConnString string
+		Schema     string
 	}
 	JWT struct {
 		Secret string
@@ -38,13 +39,19 @@ func LoadConfig() Config {
 	}
 	cfg.Server.Port = port
 
-	conn := os.Getenv("DATABASE_URL") // Standardized
+	conn := os.Getenv("DATABASE_URL")
 	if conn == "" {
 		log.Fatalf("DATABASE_URL env var required")
 	}
 	cfg.DB.ConnString = conn
 
-	secret := os.Getenv("JWT_SECRET") // Standardized
+	schema := os.Getenv("DB_SCHEMA")
+	if schema == "" {
+		schema = "auth"
+	}
+	cfg.DB.Schema = schema
+
+	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		log.Fatalf("JWT_SECRET env var required")
 	}

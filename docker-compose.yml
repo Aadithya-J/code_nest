@@ -63,6 +63,7 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=code_nest_db
       - DB_PORT=5432
+      - DB_SCHEMA=auth
     networks:
       - app_network
 
@@ -80,7 +81,9 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=code_nest_db
       - DB_PORT=5432
-      - KAFKA_BROKERS=redpanda:29092
+      - DB_SCHEMA=workspace
+      - KAFKA_BROKER_URL=redpanda:29092
+      - KAFKA_TOPIC_CMD=workspace.cmd
     networks:
       - app_network
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 
@@ -24,7 +25,17 @@ func main() {
 		log.Fatalf("failed to connect database: %v", err)
 	}
 
-	_ = db.AutoMigrate(&repository.User{})
+	createSchema := fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", cfg.DB.Schema)
+	if err := db.Exec(createSchema).Error; err != nil {
+		log.Fatalf("failed to create schema: %v", err)
+	}
+	if err := db.Exec(fmt.Sprintf("SET search_path TO %s", cfg.DB.Schema)).Error; err != nil {
+		log.Fatalf("failed to set search_path: %v", err)
+	}
+
+	if err := db.AutoMigrate(&repository.User{}); err != nil {
+		log.Fatalf("migration error: %v", err)
+	}
 	repo := repository.NewUserRepo(db)
 
 	oauthConf := &oauth2.Config{
