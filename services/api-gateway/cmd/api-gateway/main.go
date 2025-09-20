@@ -41,9 +41,25 @@ func main() {
 		RefreshInterval: time.Hour,
 		RefreshTimeout:  10 * time.Second,
 	}
-	jwks, err := keyfunc.Get(jwksURL, options)
-	if err != nil {
-		log.Fatalf("Failed to create JWKS from resource at %s: %s", jwksURL, err)
+	var jwks *keyfunc.JWKS
+
+	maxWait := 15 * time.Second
+	checkInterval := 1 * time.Second
+	startTime := time.Now()
+
+	for {
+		jwks, err = keyfunc.Get(jwksURL, options)
+		if err == nil {
+			log.Println("Successfully fetched JWKS.")
+			break
+		}
+
+		if time.Since(startTime) > maxWait {
+			log.Fatalf("Failed to create JWKS from resource at %s after %s: %s", jwksURL, maxWait, err)
+		}
+
+		log.Printf("Waiting for auth service JWKS... retrying in %s", checkInterval)
+		time.Sleep(checkInterval)
 	}
 	authMiddleware := NewAuthMiddleware(jwks)
 
