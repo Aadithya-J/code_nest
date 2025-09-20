@@ -15,26 +15,25 @@ import (
 
 type WorkspaceService struct {
 	proto.UnimplementedWorkspaceServiceServer
-	Repo     *repository.ProjectRepository
-	Producer *kafka.Producer
+	ProjectRepo *repository.ProjectRepository
+	FileRepo    *repository.FileRepository
+	Producer    *kafka.Producer
 }
 
-func NewWorkspaceService(repo *repository.ProjectRepository, producer *kafka.Producer) *WorkspaceService {
-	return &WorkspaceService{Repo: repo, Producer: producer}
+func NewWorkspaceService(projectRepo *repository.ProjectRepository, fileRepo *repository.FileRepository, producer *kafka.Producer) *WorkspaceService {
+	return &WorkspaceService{ProjectRepo: projectRepo, FileRepo: fileRepo, Producer: producer}
 }
 
 // Helper to publish events
-func (s *WorkspaceService) publishEvent(eventType string, project *models.Project) {
-	event := map[string]interface{}{
+func (s *WorkspaceService) publishEvent(eventType string, payload interface{}) {
+	jsonData, err := json.Marshal(map[string]interface{}{
 		"type":    eventType,
-		"project": project,
-	}
-	payload, err := json.Marshal(event)
+		"payload": payload,
+	})
 	if err != nil {
-		// Log the error but don't block the main operation
 		return
 	}
-	go s.Producer.Publish(context.Background(), []byte(project.ID), payload)
+	go s.Producer.Publish(context.Background(), nil, jsonData)
 }
 
 func (s *WorkspaceService) CreateProject(ctx context.Context, req *proto.CreateProjectRequest) (*proto.ProjectResponse, error) {
@@ -44,7 +43,7 @@ func (s *WorkspaceService) CreateProject(ctx context.Context, req *proto.CreateP
 		UserID:      req.UserId,
 	}
 
-	if err := s.Repo.CreateProject(project); err != nil {
+	if err := s.ProjectRepo.CreateProject(project); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create project: %v", err)
 	}
 
@@ -63,7 +62,7 @@ func (s *WorkspaceService) CreateProject(ctx context.Context, req *proto.CreateP
 }
 
 func (s *WorkspaceService) GetProjects(ctx context.Context, req *proto.GetProjectsRequest) (*proto.GetProjectsResponse, error) {
-	projects, err := s.Repo.GetProjectsByUserID(req.UserId)
+	projects, err := s.ProjectRepo.GetProjectsByUserID(req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get projects: %v", err)
 	}
@@ -84,8 +83,7 @@ func (s *WorkspaceService) GetProjects(ctx context.Context, req *proto.GetProjec
 }
 
 func (s *WorkspaceService) UpdateProject(ctx context.Context, req *proto.UpdateProjectRequest) (*proto.ProjectResponse, error) {
-	// First, verify the user is authorized to update this project.
-	project, err := s.Repo.GetProjectByID(req.Id)
+	project, err := s.ProjectRepo.GetProjectByID(req.Id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, status.Errorf(codes.NotFound, "project not found")
@@ -97,7 +95,6 @@ func (s *WorkspaceService) UpdateProject(ctx context.Context, req *proto.UpdateP
 		return nil, status.Errorf(codes.PermissionDenied, "user not authorized to update this project")
 	}
 
-	// Create a map of the fields to update.
 	updates := make(map[string]interface{})
 	if req.Name != "" {
 		updates["name"] = req.Name
@@ -106,15 +103,13 @@ func (s *WorkspaceService) UpdateProject(ctx context.Context, req *proto.UpdateP
 		updates["description"] = req.Description
 	}
 
-	// If there are updates, perform the update.
 	if len(updates) > 0 {
-		if err := s.Repo.UpdateProject(req.Id, updates); err != nil {
+		if err := s.ProjectRepo.UpdateProject(req.Id, updates); err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to update project: %v", err)
 		}
 	}
 
-	// Retrieve the updated project to return the latest state.
-	updatedProject, err := s.Repo.GetProjectByID(req.Id)
+	updatedProject, err := s.ProjectRepo.GetProjectByID(req.Id)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to retrieve updated project: %v", err)
 	}
@@ -134,7 +129,7 @@ func (s *WorkspaceService) UpdateProject(ctx context.Context, req *proto.UpdateP
 }
 
 func (s *WorkspaceService) DeleteProject(ctx context.Context, req *proto.DeleteProjectRequest) (*proto.DeleteProjectResponse, error) {
-	project, err := s.Repo.GetProjectByID(req.Id)
+	project, err := s.ProjectRepo.GetProjectByID(req.Id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, status.Errorf(codes.NotFound, "project not found")
@@ -146,7 +141,7 @@ func (s *WorkspaceService) DeleteProject(ctx context.Context, req *proto.DeleteP
 		return nil, status.Errorf(codes.PermissionDenied, "user not authorized to delete this project")
 	}
 
-	if err := s.Repo.DeleteProject(req.Id, req.UserId); err != nil {
+	if err := s.ProjectRepo.DeleteProject(req.Id, req.UserId); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete project: %v", err)
 	}
 
@@ -156,4 +151,89 @@ func (s *WorkspaceService) DeleteProject(ctx context.Context, req *proto.DeleteP
 		Success: true,
 		Message: "Project deleted successfully",
 	}, nil
+}
+
+func (s *WorkspaceService) SaveFile(ctx context.Context, req *proto.SaveFileRequest) (*proto.FileResponse, error) {
+	project, err := s.ProjectRepo.GetProjectByID(req.ProjectId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "project not found")
+	}
+	if project.UserID != req.UserId {
+		return nil, status.Errorf(codes.PermissionDenied, "user not authorized to save to this project")
+	}
+
+	file := &models.File{
+		ProjectID: req.ProjectId,
+		Path:      req.Path,
+		Content:   req.Content,
+	}
+
+	if err := s.FileRepo.SaveFile(file); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to save file: %v", err)
+	}
+
+	s.publishEvent("file.saved", file)
+
+	return &proto.FileResponse{
+		File: &proto.File{
+			Id:        file.ID,
+			ProjectId: file.ProjectID,
+			Path:      file.Path,
+			Content:   file.Content,
+			UpdatedAt: file.UpdatedAt.String(),
+		},
+	}, nil
+}
+
+func (s *WorkspaceService) GetFile(ctx context.Context, req *proto.GetFileRequest) (*proto.FileResponse, error) {
+	project, err := s.ProjectRepo.GetProjectByID(req.ProjectId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "project not found")
+	}
+	if project.UserID != req.UserId {
+		return nil, status.Errorf(codes.PermissionDenied, "user not authorized to read from this project")
+	}
+
+	file, err := s.FileRepo.GetFile(req.ProjectId, req.Path)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "file not found")
+	}
+
+	return &proto.FileResponse{
+		File: &proto.File{
+			Id:        file.ID,
+			ProjectId: file.ProjectID,
+			Path:      file.Path,
+			Content:   file.Content,
+			UpdatedAt: file.UpdatedAt.String(),
+		},
+	}, nil
+}
+
+func (s *WorkspaceService) ListFiles(ctx context.Context, req *proto.ListFilesRequest) (*proto.ListFilesResponse, error) {
+	project, err := s.ProjectRepo.GetProjectByID(req.ProjectId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "project not found")
+	}
+	if project.UserID != req.UserId {
+		return nil, status.Errorf(codes.PermissionDenied, "user not authorized to list files in this project")
+	}
+
+	files, err := s.FileRepo.ListFiles(req.ProjectId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list files: %v", err)
+	}
+
+	var protoFiles []*proto.File
+	for _, f := range files {
+		protoFiles = append(protoFiles, &proto.File{
+			Id:        f.ID,
+			ProjectId: f.ProjectID,
+			Path:      f.Path,
+			Content:   f.Content,
+			UpdatedAt: f.UpdatedAt.String(),
+		})
+	}
+
+	return &proto.ListFilesResponse{Files: protoFiles}, nil
 }

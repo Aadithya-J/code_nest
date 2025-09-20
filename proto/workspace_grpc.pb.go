@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.3
-// source: workspace.proto
+// source: proto/workspace.proto
 
 package proto
 
@@ -23,6 +23,9 @@ const (
 	WorkspaceService_GetProjects_FullMethodName   = "/proto.WorkspaceService/GetProjects"
 	WorkspaceService_UpdateProject_FullMethodName = "/proto.WorkspaceService/UpdateProject"
 	WorkspaceService_DeleteProject_FullMethodName = "/proto.WorkspaceService/DeleteProject"
+	WorkspaceService_SaveFile_FullMethodName      = "/proto.WorkspaceService/SaveFile"
+	WorkspaceService_GetFile_FullMethodName       = "/proto.WorkspaceService/GetFile"
+	WorkspaceService_ListFiles_FullMethodName     = "/proto.WorkspaceService/ListFiles"
 )
 
 // WorkspaceServiceClient is the client API for WorkspaceService service.
@@ -39,6 +42,12 @@ type WorkspaceServiceClient interface {
 	UpdateProject(ctx context.Context, in *UpdateProjectRequest, opts ...grpc.CallOption) (*ProjectResponse, error)
 	// Deletes a project by its ID.
 	DeleteProject(ctx context.Context, in *DeleteProjectRequest, opts ...grpc.CallOption) (*DeleteProjectResponse, error)
+	// Saves or updates a file within a project.
+	SaveFile(ctx context.Context, in *SaveFileRequest, opts ...grpc.CallOption) (*FileResponse, error)
+	// Retrieves a file's content.
+	GetFile(ctx context.Context, in *GetFileRequest, opts ...grpc.CallOption) (*FileResponse, error)
+	// Lists all files in a project.
+	ListFiles(ctx context.Context, in *ListFilesRequest, opts ...grpc.CallOption) (*ListFilesResponse, error)
 }
 
 type workspaceServiceClient struct {
@@ -89,6 +98,36 @@ func (c *workspaceServiceClient) DeleteProject(ctx context.Context, in *DeletePr
 	return out, nil
 }
 
+func (c *workspaceServiceClient) SaveFile(ctx context.Context, in *SaveFileRequest, opts ...grpc.CallOption) (*FileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FileResponse)
+	err := c.cc.Invoke(ctx, WorkspaceService_SaveFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workspaceServiceClient) GetFile(ctx context.Context, in *GetFileRequest, opts ...grpc.CallOption) (*FileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FileResponse)
+	err := c.cc.Invoke(ctx, WorkspaceService_GetFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workspaceServiceClient) ListFiles(ctx context.Context, in *ListFilesRequest, opts ...grpc.CallOption) (*ListFilesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListFilesResponse)
+	err := c.cc.Invoke(ctx, WorkspaceService_ListFiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkspaceServiceServer is the server API for WorkspaceService service.
 // All implementations must embed UnimplementedWorkspaceServiceServer
 // for forward compatibility.
@@ -103,6 +142,12 @@ type WorkspaceServiceServer interface {
 	UpdateProject(context.Context, *UpdateProjectRequest) (*ProjectResponse, error)
 	// Deletes a project by its ID.
 	DeleteProject(context.Context, *DeleteProjectRequest) (*DeleteProjectResponse, error)
+	// Saves or updates a file within a project.
+	SaveFile(context.Context, *SaveFileRequest) (*FileResponse, error)
+	// Retrieves a file's content.
+	GetFile(context.Context, *GetFileRequest) (*FileResponse, error)
+	// Lists all files in a project.
+	ListFiles(context.Context, *ListFilesRequest) (*ListFilesResponse, error)
 	mustEmbedUnimplementedWorkspaceServiceServer()
 }
 
@@ -124,6 +169,15 @@ func (UnimplementedWorkspaceServiceServer) UpdateProject(context.Context, *Updat
 }
 func (UnimplementedWorkspaceServiceServer) DeleteProject(context.Context, *DeleteProjectRequest) (*DeleteProjectResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteProject not implemented")
+}
+func (UnimplementedWorkspaceServiceServer) SaveFile(context.Context, *SaveFileRequest) (*FileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SaveFile not implemented")
+}
+func (UnimplementedWorkspaceServiceServer) GetFile(context.Context, *GetFileRequest) (*FileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFile not implemented")
+}
+func (UnimplementedWorkspaceServiceServer) ListFiles(context.Context, *ListFilesRequest) (*ListFilesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListFiles not implemented")
 }
 func (UnimplementedWorkspaceServiceServer) mustEmbedUnimplementedWorkspaceServiceServer() {}
 func (UnimplementedWorkspaceServiceServer) testEmbeddedByValue()                          {}
@@ -218,6 +272,60 @@ func _WorkspaceService_DeleteProject_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkspaceService_SaveFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaveFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkspaceServiceServer).SaveFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkspaceService_SaveFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkspaceServiceServer).SaveFile(ctx, req.(*SaveFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkspaceService_GetFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkspaceServiceServer).GetFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkspaceService_GetFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkspaceServiceServer).GetFile(ctx, req.(*GetFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkspaceService_ListFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFilesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkspaceServiceServer).ListFiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkspaceService_ListFiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkspaceServiceServer).ListFiles(ctx, req.(*ListFilesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkspaceService_ServiceDesc is the grpc.ServiceDesc for WorkspaceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -241,7 +349,19 @@ var WorkspaceService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "DeleteProject",
 			Handler:    _WorkspaceService_DeleteProject_Handler,
 		},
+		{
+			MethodName: "SaveFile",
+			Handler:    _WorkspaceService_SaveFile_Handler,
+		},
+		{
+			MethodName: "GetFile",
+			Handler:    _WorkspaceService_GetFile_Handler,
+		},
+		{
+			MethodName: "ListFiles",
+			Handler:    _WorkspaceService_ListFiles_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "workspace.proto",
+	Metadata: "proto/workspace.proto",
 }

@@ -17,6 +17,15 @@ service WorkspaceService {
 
   // Deletes a project by its ID.
   rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
+
+  // Saves or updates a file within a project.
+  rpc SaveFile(SaveFileRequest) returns (FileResponse);
+
+  // Retrieves a file's content.
+  rpc GetFile(GetFileRequest) returns (FileResponse);
+
+  // Lists all files in a project.
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
 }
 
 // Message Definitions
@@ -67,4 +76,39 @@ message DeleteProjectResponse {
 // A standard response that returns a single project.
 message ProjectResponse {
   Project project = 1;
+}
+
+// Represents a single file in a project.
+message File {
+  string id = 1;
+  string projectId = 2;
+  string path = 3;
+  string content = 4;
+  string updatedAt = 5;
+}
+
+message SaveFileRequest {
+  string projectId = 1;
+  string path = 2;
+  string content = 3;
+  string userId = 4; // For auth check
+}
+
+message GetFileRequest {
+  string projectId = 1;
+  string path = 2;
+  string userId = 3; // For auth check
+}
+
+message ListFilesRequest {
+  string projectId = 1;
+  string userId = 2; // For auth check
+}
+
+message ListFilesResponse {
+  repeated File files = 1;
+}
+
+message FileResponse {
+  File file = 1;
 }

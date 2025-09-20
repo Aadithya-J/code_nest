@@ -40,7 +40,10 @@ func main() {
 	}
 
 	projectRepo := repository.NewProjectRepository(gormDB)
-	workspaceSvc := service.NewWorkspaceService(projectRepo, kafkaProducer)
+	fileRepo := repository.NewFileRepository(gormDB)
+	producer := kafka.NewProducer(cfg.KafkaBrokerURL, cfg.KafkaTopicCmd)
+
+	workspaceSvc := service.NewWorkspaceService(projectRepo, fileRepo, producer)
 
 	s := grpc.NewServer()
 	proto.RegisterWorkspaceServiceServer(s, workspaceSvc)
