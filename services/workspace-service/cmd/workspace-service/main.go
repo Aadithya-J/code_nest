@@ -18,7 +18,7 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	gormDB := db.Init(cfg.DatabaseURL)
+	gormDB := db.Init(cfg.DatabaseURL, cfg.DBSchema)
 
 	createSchema := fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", cfg.DBSchema)
 	gormDB.Exec(createSchema)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 
 	"github.com/Aadithya-J/code_nest/proto"
 	"golang.org/x/oauth2"
@@ -20,7 +21,16 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	db, err := gorm.Open(postgres.Open(cfg.DB.ConnString), &gorm.Config{})
+	dsn := cfg.DB.ConnString
+	if !strings.Contains(dsn, "search_path") {
+		sep := "?"
+		if strings.Contains(dsn, "?") {
+			sep = "&"
+		}
+		dsn = dsn + sep + "search_path=" + cfg.DB.Schema
+	}
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
