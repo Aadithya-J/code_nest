@@ -4,10 +4,14 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/Aadithya-J/code_nest/proto"
 	"github.com/Aadithya-J/code_nest/services/api-gateway/internal/config"
+	"github.com/MicahParks/keyfunc"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -32,27 +36,17 @@ func main() {
 	defer workspaceConn.Close()
 	workspaceClient := proto.NewWorkspaceServiceClient(workspaceConn)
 
-	// Auth middleware
-	authMiddleware := func(c *gin.Context) {
-		token := c.GetHeader("Authorization")
-		if token == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
-			return
-		}
-
-		resp, err := authClient.ValidateToken(context.Background(), &proto.ValidateTokenRequest{Token: token})
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authentication failed: " + err.Error()})
-			return
-		}
-		if !resp.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": resp.Error})
-			return
-		}
-
-		c.Set("user_id", resp.UserId)
-		c.Next()
+	jwksURL := cfg.AuthSvcJWKSUrl
+	options := keyfunc.Options{
+		RefreshInterval: time.Hour,
+		RefreshTimeout:  10 * time.Second,
 	}
+	jwks, err := keyfunc.Get(jwksURL, options)
+	if err != nil {
+		log.Fatalf("Failed to create JWKS from resource at %s: %s", jwksURL, err)
+	}
+	authMiddleware := NewAuthMiddleware(jwks)
+
 
 	auth := r.Group("/auth")
 	{
@@ -105,7 +99,7 @@ func main() {
 		})
 	}
 
-	workspace := r.Group("/workspace", authMiddleware)
+	workspace := r.Group("/workspace", authMiddleware.Authorize)
 	{
 		workspace.POST("/projects", func(c *gin.Context) {
 			var req proto.CreateProjectRequest
@@ -162,7 +156,7 @@ func main() {
 		})
 	}
 
-	r.GET("/protected", authMiddleware, func(c *gin.Context) {
+	r.GET("/protected", authMiddleware.Authorize, func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "Hello " + c.GetString("user_id")})
 	})
 
@@ -171,3 +165,52 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
+type AuthMiddleware struct {
+	jwks *keyfunc.JWKS
+}
+
+func NewAuthMiddleware(jwks *keyfunc.JWKS) *AuthMiddleware {
+	return &AuthMiddleware{jwks: jwks}
+}
+
+func (am *AuthMiddleware) Authorize(c *gin.Context) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
+		return
+	}
+
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	if tokenString == authHeader {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token format"})
+		return
+	}
+
+	token, err := jwt.Parse(tokenString, am.jwks.Keyfunc)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token validation failed: " + err.Error()})
+		return
+	}
+
+	if !token.Valid {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "failed to parse claims"})
+		return
+	}
+
+	sub, ok := claims["sub"].(string)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "'sub' claim is missing or invalid"})
+		return
+	}
+
+	c.Set("user_id", sub)
+	c.Next()
+}
+

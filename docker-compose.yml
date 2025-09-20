@@ -45,6 +45,7 @@ services:
       - API_GATEWAY_PORT=8080
       - AUTH_SERVICE_URL=auth-service:50051
       - WORKSPACE_SERVICE_URL=workspace-service:50052
+      - AUTH_SERVICE_JWKS_URL=http://auth-service:8081/.well-known/jwks.json
     ports:
       - "8080:8080"
     networks:

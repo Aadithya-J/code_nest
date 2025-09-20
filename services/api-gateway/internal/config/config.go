@@ -11,6 +11,7 @@ type Config struct {
 	AuthSvcUrl      string
 	WorkspaceSvcUrl string
 	Port            string
+	AuthSvcJWKSUrl  string
 }
 
 func LoadConfig() *Config {
@@ -28,6 +29,11 @@ func LoadConfig() *Config {
 		log.Fatalf("WORKSPACE_SERVICE_URL env var required")
 	}
 
+	authSvcJWKSUrl := os.Getenv("AUTH_SERVICE_JWKS_URL")
+	if authSvcJWKSUrl == "" {
+		log.Fatalf("AUTH_SERVICE_JWKS_URL env var required")
+	}
+
 	port := os.Getenv("API_GATEWAY_PORT")
 	if port == "" {
 		port = "8080" // Default port
@@ -38,5 +44,6 @@ func LoadConfig() *Config {
 		AuthSvcUrl:      authSvcUrl,
 		WorkspaceSvcUrl: workspaceSvcUrl,
 		Port:            port,
+		AuthSvcJWKSUrl:  authSvcJWKSUrl,
 	}
 }
