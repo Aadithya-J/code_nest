@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Stage 1: Builder
 FROM golang:1.24-alpine AS builder
 
@@ -10,10 +11,16 @@ COPY . .
 # Enter service directory
 WORKDIR /app/services/auth-service
 
-RUN go mod download
+# Use BuildKit cache mounts for much faster builds
+# This caches the Go module cache and build cache across builds
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
 
-# Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /auth-service ./cmd/auth-service
+# Build with cache mounts
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -o /auth-service ./cmd/auth-service
 
 # Stage 2: Final
 FROM gcr.io/distroless/static-debian11

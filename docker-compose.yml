@@ -1,5 +1,4 @@
-version: '3.8'
-
+# no "version" key — use Compose Spec
 services:
   postgres:
     image: postgres:14-alpine
@@ -9,11 +8,16 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: code_nest_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d code_nest_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redpanda:
     image: redpandadata/redpanda:v23.1.2
@@ -35,17 +39,18 @@ services:
 
   api-gateway:
     build:
-      context: .
-      dockerfile: services/api-gateway/Dockerfile
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    image: code_nest/api-gateway:local
     container_name: api_gateway
     depends_on:
       - auth-service
       - workspace-service
     environment:
-      - API_GATEWAY_PORT=8080
-      - AUTH_SERVICE_URL=auth-service:50051
-      - WORKSPACE_SERVICE_URL=workspace-service:50052
-      - AUTH_SERVICE_JWKS_URL=http://auth-service:8081/.well-known/jwks.json
+      API_GATEWAY_PORT: 8080
+      AUTH_SERVICE_URL: "auth-service:50051"
+      WORKSPACE_SERVICE_URL: "workspace-service:50052"
+      AUTH_SERVICE_JWKS_URL: "http://auth-service:8081/.well-known/jwks.json"
     ports:
       - "8080:8080"
     networks:
@@ -55,44 +60,47 @@ services:
     build:
       context: .
       dockerfile: services/auth-service/Dockerfile
-    ports:
-      - "8081:8081"
+    image: code_nest/auth-service:local
     container_name: auth_service
     depends_on:
       - postgres
     environment:
-      - DB_HOST=postgres
-      - DB_USER=user
-      - DB_PASSWORD=password
-      - DB_NAME=code_nest_db
-      - DB_PORT=5432
-      - DB_SCHEMA=auth
       - DATABASE_URL=postgresql://user:password@postgres:5432/code_nest_db?sslmode=disable
-      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-dummy}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-dummy}
-      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL:-http://localhost:8080/auth/google/callback}
+      - DB_SCHEMA=auth
+      - JWT_SECRET=your-secret-key
+      - GOOGLE_CLIENT_ID=your-google-client-id
+      - GOOGLE_CLIENT_SECRET=your-google-client-secret
+      - GOOGLE_REDIRECT_URL=http://localhost:8080/auth/google/callback
+    ports:
+      - "8081:8081"
+    volumes:
+      - auth_keys:/app/keys
     networks:
       - app_network
 
   workspace-service:
     build:
-      context: .
-      dockerfile: services/workspace-service/Dockerfile
+      context: ./services/workspace-service
+      dockerfile: Dockerfile
+      args:
+        - GOPROXY=https://proxy.golang.org,direct
+    image: code_nest/workspace-service:local
     container_name: workspace_service
     depends_on:
       - postgres
       - redpanda
     environment:
-      - DB_HOST=postgres
-      - DB_USER=user
-      - DB_PASSWORD=password
-      - DB_NAME=code_nest_db
-      - DB_PORT=5432
-      - DB_SCHEMA=workspace
-      - DATABASE_URL=postgresql://user:password@postgres:5432/code_nest_db?sslmode=disable
-      - KAFKA_BROKER_URL=redpanda:29092
-      - KAFKA_TOPIC_CMD=workspace.cmd
+      DB_HOST: postgres
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: code_nest_db
+      DB_PORT: 5432
+      DB_SCHEMA: workspace
+      DATABASE_URL: "postgresql://user:password@postgres:5432/code_nest_db?sslmode=disable"
+      KAFKA_BROKER_URL: "redpanda:29092"
+      KAFKA_TOPIC_CMD: workspace.cmd
+    ports:
+      - "50052:50052"
     networks:
       - app_network
 
@@ -102,4 +110,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  auth_keys:
     driver: local

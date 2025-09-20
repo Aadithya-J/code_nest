@@ -1,28 +1,31 @@
-# Stage 1: Builder
-# Use the official Golang image to build the application
+# syntax=docker/dockerfile:1.4
+# Stage 1 - builder
 FROM golang:1.24-alpine AS builder
 
-# Set the working directory inside the container
-# Build using repo root context
 WORKDIR /app
 
+# Copy entire repository (needed for Go workspace with local dependencies)
 COPY . .
 
+# Enter service directory
 WORKDIR /app/services/api-gateway
 
-RUN go mod download
+# Use BuildKit cache mounts for faster builds
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /api-gateway ./cmd/api-gateway
+# Build with cache mounts
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /api-gateway ./cmd/api-gateway
 
-# Stage 2: Final
-# Use a minimal, non-root image for the final container
+# Stage 2 - final (minimal)
 FROM gcr.io/distroless/static-debian11
 
-# Copy the built binary from the builder stage
-COPY --from=builder /api-gateway /
+# copy binary from builder
+COPY --from=builder /api-gateway /api-gateway
 
-# Expose the port the API Gateway will run on
 EXPOSE 8080
 
-# Set the entrypoint for the container
 ENTRYPOINT ["/api-gateway"]

@@ -1,27 +1,26 @@
-# Stage 1: Builder
+# syntax=docker/dockerfile:1.4
 FROM golang:1.24-alpine AS builder
 
-# Set workdir at repo root copy
 WORKDIR /app
 
-# Copy entire repository (context is repo root)
+# Copy entire repository
 COPY . .
 
-# Move into service directory
+# Enter service directory
 WORKDIR /app/services/workspace-service
 
-# Download dependencies
-RUN go mod download
+# Use BuildKit cache mounts for faster builds
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
 
-# Build binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o /workspace-service ./cmd/workspace-service
+# Build with cache mounts
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -o /workspace-service ./cmd/workspace-service .
 
-# Stage 2: Final
 FROM gcr.io/distroless/static-debian11
+COPY --from=builder /workspace-service /workspace-service
 
-COPY --from=builder /workspace-service /
-
-# gRPC services typically run on port 50051, but we'll use 50052 to avoid conflicts
 EXPOSE 50052
-
 ENTRYPOINT ["/workspace-service"]
