@@ -98,7 +98,8 @@ services:
 
   execution-service:
     build:
-      context: ./services/execution-service
+      context: .
+      dockerfile: services/execution-service/Dockerfile
     container_name: execution_service
     depends_on:
       - redpanda
