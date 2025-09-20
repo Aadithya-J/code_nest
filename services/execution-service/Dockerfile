@@ -13,7 +13,7 @@ WORKDIR /app/services/execution-service
 RUN go mod download
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /execution-service ./cmd/execution-service
+RUN CGO_ENABLED=0 GOOS=linux go build -o /execution-service .
 
 # Stage 2: Final
 FROM gcr.io/distroless/static-debian11

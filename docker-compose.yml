@@ -96,19 +96,6 @@ services:
     networks:
       - app_network
 
-  execution-service:
-    build:
-      context: .
-      dockerfile: services/execution-service/Dockerfile
-    container_name: execution_service
-    depends_on:
-      - redpanda
-    environment:
-      - KAFKA_BROKERS=redpanda:29092
-      - KIND_CLUSTER=false
-    networks:
-      - app_network
-
 networks:
   app_network:
     driver: bridge
