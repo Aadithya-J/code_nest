@@ -2,57 +2,41 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/Aadithya-J/code_nest/proto"
 	"github.com/Aadithya-J/code_nest/services/auth-service/internal/repository"
 	"github.com/golang-jwt/jwt/v4"
+	"gopkg.in/square/go-jose.v2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 )
 
 type AuthService struct {
 	proto.UnimplementedAuthServiceServer
-	repo      *repository.UserRepo
-	jwtSecret string
-	oauthConf *oauth2.Config
+	repo         *repository.UserRepo
+	privateKey   *rsa.PrivateKey
+	jwks         *jose.JSONWebKeySet
+	oauthConf    *oauth2.Config
 }
 
-// VerifyToken parses and validates a JWT, returning the subject (email) if valid
-func (s *AuthService) VerifyToken(tokenStr string) (string, error) {
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(s.jwtSecret), nil
-	})
+
+func NewAuthService(repo *repository.UserRepo, oauthConf *oauth2.Config) (*AuthService, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("failed to generate rsa key: %w", err)
 	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || !token.Valid {
-		return "", errors.New("invalid token")
-	}
-	sub, ok := claims["sub"].(string)
-	if !ok {
-		return "", errors.New("invalid sub claim")
-	}
-	return sub, nil
-}
 
-func (s *AuthService) ValidateToken(ctx context.Context, req *proto.ValidateTokenRequest) (*proto.ValidateTokenResponse, error) {
-	email, err := s.VerifyToken(req.Token)
-	if err != nil {
-		return &proto.ValidateTokenResponse{Valid: false, Error: err.Error()}, nil
-	}
-	return &proto.ValidateTokenResponse{Valid: true, UserId: email}, nil
-}
+	jwk := jose.JSONWebKey{Key: &privateKey.PublicKey, KeyID: "1", Algorithm: "RS256", Use: "sig"}
+	jwks := &jose.JSONWebKeySet{Keys: []jose.JSONWebKey{jwk}}
 
-func NewAuthService(repo *repository.UserRepo, jwtSecret string, oauthConf *oauth2.Config) *AuthService {
-	return &AuthService{repo: repo, jwtSecret: jwtSecret, oauthConf: oauthConf}
+	return &AuthService{repo: repo, privateKey: privateKey, jwks: jwks, oauthConf: oauthConf}, nil
 }
 
 func (s *AuthService) Signup(ctx context.Context, req *proto.SignupRequest) (*proto.AuthResponse, error) {
@@ -91,8 +75,13 @@ func (s *AuthService) GenerateToken(email string) (string, error) {
 		"sub": email,
 		"exp": time.Now().Add(time.Hour * 72).Unix(),
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.jwtSecret))
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	return token.SignedString(s.privateKey)
+}
+
+func (s *AuthService) JWKSHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(s.jwks)
 }
 
 func (s *AuthService) HandleGoogleCallback(ctx context.Context, req *proto.HandleGoogleCallbackRequest) (*proto.AuthResponse, error) {

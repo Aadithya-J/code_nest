@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"strings"
 
 	"github.com/Aadithya-J/code_nest/proto"
@@ -55,7 +56,10 @@ func main() {
 		Scopes:       []string{"openid", "email", "profile"},
 		Endpoint:     google.Endpoint,
 	}
-	authSvc := service.NewAuthService(repo, cfg.JWT.Secret, oauthConf)
+		authSvc, err := service.NewAuthService(repo, oauthConf)
+	if err != nil {
+		log.Fatalf("failed to create auth service: %v", err)
+	}
 
 	lis, err := net.Listen("tcp", ":"+cfg.Server.Port)
 	if err != nil {
@@ -64,6 +68,14 @@ func main() {
 	s := grpc.NewServer()
 	proto.RegisterAuthServiceServer(s, authSvc)
 	log.Printf("gRPC server listening on :%s", cfg.Server.Port)
+		go func() {
+		log.Println("Starting JWKS server on :8081")
+		http.HandleFunc("/.well-known/jwks.json", authSvc.JWKSHandler)
+		if err := http.ListenAndServe(":8081", nil); err != nil {
+			log.Fatalf("failed to serve JWKS: %v", err)
+		}
+	}()
+
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve gRPC: %v", err)
 	}
