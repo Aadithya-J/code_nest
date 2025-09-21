@@ -9,3 +9,5 @@
 
 # Environment files
 .env
+
+github_app.pem

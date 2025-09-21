@@ -20,6 +20,15 @@ service AuthService {
 
   // HandleGoogleCallback handles the callback from Google authentication
   rpc HandleGoogleCallback (HandleGoogleCallbackRequest) returns (AuthResponse) {}
+
+  // GitHub OAuth flow – step 1: get install URL
+  rpc GetGitHubAuthURL (GetGitHubAuthURLRequest) returns (GetGitHubAuthURLResponse) {}
+
+  // GitHub OAuth flow – step 2: handle callback with installation_id
+  rpc HandleGitHubCallback (HandleGitHubCallbackRequest) returns (AuthResponse) {}
+
+  // Internal – runner-allocator asks for 1-hour access token
+  rpc GetGitHubAccessToken (GetGitHubAccessTokenRequest) returns (GetGitHubAccessTokenResponse) {}
 }
 
 // Request for signing up a new user
@@ -65,4 +74,27 @@ message GetGoogleAuthURLResponse {
 // Request for handling the Google authentication callback
 message HandleGoogleCallbackRequest {
   string code = 1;
+}
+
+// --- GitHub OAuth messages ---
+message GetGitHubAuthURLRequest {}
+
+message GetGitHubAuthURLResponse {
+  string url = 1;
+}
+
+message HandleGitHubCallbackRequest {
+  int64 installation_id = 1;
+  string setup_action = 2; // 'install' | 'update'
+  string user_id = 3; // authenticated user email
+}
+
+// Internal RPC used by allocator
+message GetGitHubAccessTokenRequest {
+  string user_id = 1;
+}
+
+message GetGitHubAccessTokenResponse {
+  string token = 1;
+  int64 expires_at = 2; // epoch seconds
 }

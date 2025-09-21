@@ -51,6 +51,7 @@ services:
       AUTH_SERVICE_URL: "auth-service:50051"
       WORKSPACE_SERVICE_URL: "workspace-service:50052"
       AUTH_SERVICE_JWKS_URL: "http://auth-service:8081/.well-known/jwks.json"
+      APP_ENV: ${APP_ENV:-development}
     ports:
       - "8080:8080"
     networks:
@@ -67,14 +68,19 @@ services:
     environment:
       - DATABASE_URL=postgresql://user:password@postgres:5432/code_nest_db?sslmode=disable
       - DB_SCHEMA=auth
-      - JWT_SECRET=your-secret-key
-      - GOOGLE_CLIENT_ID=your-google-client-id
-      - GOOGLE_CLIENT_SECRET=your-google-client-secret
-      - GOOGLE_REDIRECT_URL=http://localhost:8080/auth/google/callback
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URL=${AUTH_GOOGLE_REDIRECT_URL}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_SLUG=${GITHUB_APP_SLUG}
+      - GITHUB_PRIVATE_KEY_PATH=${GITHUB_PRIVATE_KEY_PATH:-/app/github_app.pem}
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8080}
     ports:
       - "8081:8081"
     volumes:
       - auth_keys:/app/keys
+      - ./github_app.pem:/app/github_app.pem:ro
     networks:
       - app_network
 

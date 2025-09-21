@@ -24,6 +24,9 @@ const (
 	AuthService_ValidateToken_FullMethodName        = "/proto.AuthService/ValidateToken"
 	AuthService_GetGoogleAuthURL_FullMethodName     = "/proto.AuthService/GetGoogleAuthURL"
 	AuthService_HandleGoogleCallback_FullMethodName = "/proto.AuthService/HandleGoogleCallback"
+	AuthService_GetGitHubAuthURL_FullMethodName     = "/proto.AuthService/GetGitHubAuthURL"
+	AuthService_HandleGitHubCallback_FullMethodName = "/proto.AuthService/HandleGitHubCallback"
+	AuthService_GetGitHubAccessToken_FullMethodName = "/proto.AuthService/GetGitHubAccessToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -42,6 +45,12 @@ type AuthServiceClient interface {
 	GetGoogleAuthURL(ctx context.Context, in *GetGoogleAuthURLRequest, opts ...grpc.CallOption) (*GetGoogleAuthURLResponse, error)
 	// HandleGoogleCallback handles the callback from Google authentication
 	HandleGoogleCallback(ctx context.Context, in *HandleGoogleCallbackRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	// GitHub OAuth flow – step 1: get install URL
+	GetGitHubAuthURL(ctx context.Context, in *GetGitHubAuthURLRequest, opts ...grpc.CallOption) (*GetGitHubAuthURLResponse, error)
+	// GitHub OAuth flow – step 2: handle callback with installation_id
+	HandleGitHubCallback(ctx context.Context, in *HandleGitHubCallbackRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	// Internal – runner-allocator asks for 1-hour access token
+	GetGitHubAccessToken(ctx context.Context, in *GetGitHubAccessTokenRequest, opts ...grpc.CallOption) (*GetGitHubAccessTokenResponse, error)
 }
 
 type authServiceClient struct {
@@ -102,6 +111,36 @@ func (c *authServiceClient) HandleGoogleCallback(ctx context.Context, in *Handle
 	return out, nil
 }
 
+func (c *authServiceClient) GetGitHubAuthURL(ctx context.Context, in *GetGitHubAuthURLRequest, opts ...grpc.CallOption) (*GetGitHubAuthURLResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGitHubAuthURLResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetGitHubAuthURL_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) HandleGitHubCallback(ctx context.Context, in *HandleGitHubCallbackRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthResponse)
+	err := c.cc.Invoke(ctx, AuthService_HandleGitHubCallback_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetGitHubAccessToken(ctx context.Context, in *GetGitHubAccessTokenRequest, opts ...grpc.CallOption) (*GetGitHubAccessTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGitHubAccessTokenResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetGitHubAccessToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -118,6 +157,12 @@ type AuthServiceServer interface {
 	GetGoogleAuthURL(context.Context, *GetGoogleAuthURLRequest) (*GetGoogleAuthURLResponse, error)
 	// HandleGoogleCallback handles the callback from Google authentication
 	HandleGoogleCallback(context.Context, *HandleGoogleCallbackRequest) (*AuthResponse, error)
+	// GitHub OAuth flow – step 1: get install URL
+	GetGitHubAuthURL(context.Context, *GetGitHubAuthURLRequest) (*GetGitHubAuthURLResponse, error)
+	// GitHub OAuth flow – step 2: handle callback with installation_id
+	HandleGitHubCallback(context.Context, *HandleGitHubCallbackRequest) (*AuthResponse, error)
+	// Internal – runner-allocator asks for 1-hour access token
+	GetGitHubAccessToken(context.Context, *GetGitHubAccessTokenRequest) (*GetGitHubAccessTokenResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -142,6 +187,15 @@ func (UnimplementedAuthServiceServer) GetGoogleAuthURL(context.Context, *GetGoog
 }
 func (UnimplementedAuthServiceServer) HandleGoogleCallback(context.Context, *HandleGoogleCallbackRequest) (*AuthResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HandleGoogleCallback not implemented")
+}
+func (UnimplementedAuthServiceServer) GetGitHubAuthURL(context.Context, *GetGitHubAuthURLRequest) (*GetGitHubAuthURLResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGitHubAuthURL not implemented")
+}
+func (UnimplementedAuthServiceServer) HandleGitHubCallback(context.Context, *HandleGitHubCallbackRequest) (*AuthResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HandleGitHubCallback not implemented")
+}
+func (UnimplementedAuthServiceServer) GetGitHubAccessToken(context.Context, *GetGitHubAccessTokenRequest) (*GetGitHubAccessTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGitHubAccessToken not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -254,6 +308,60 @@ func _AuthService_HandleGoogleCallback_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_GetGitHubAuthURL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGitHubAuthURLRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetGitHubAuthURL(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetGitHubAuthURL_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetGitHubAuthURL(ctx, req.(*GetGitHubAuthURLRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_HandleGitHubCallback_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HandleGitHubCallbackRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).HandleGitHubCallback(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_HandleGitHubCallback_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).HandleGitHubCallback(ctx, req.(*HandleGitHubCallbackRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetGitHubAccessToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGitHubAccessTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetGitHubAccessToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetGitHubAccessToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetGitHubAccessToken(ctx, req.(*GetGitHubAccessTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -280,6 +388,18 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HandleGoogleCallback",
 			Handler:    _AuthService_HandleGoogleCallback_Handler,
+		},
+		{
+			MethodName: "GetGitHubAuthURL",
+			Handler:    _AuthService_GetGitHubAuthURL_Handler,
+		},
+		{
+			MethodName: "HandleGitHubCallback",
+			Handler:    _AuthService_HandleGitHubCallback_Handler,
+		},
+		{
+			MethodName: "GetGitHubAccessToken",
+			Handler:    _AuthService_GetGitHubAccessToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

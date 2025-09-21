@@ -421,6 +421,244 @@ func (x *HandleGoogleCallbackRequest) GetCode() string {
 	return ""
 }
 
+// --- GitHub OAuth messages ---
+type GetGitHubAuthURLRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGitHubAuthURLRequest) Reset() {
+	*x = GetGitHubAuthURLRequest{}
+	mi := &file_auth_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGitHubAuthURLRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGitHubAuthURLRequest) ProtoMessage() {}
+
+func (x *GetGitHubAuthURLRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGitHubAuthURLRequest.ProtoReflect.Descriptor instead.
+func (*GetGitHubAuthURLRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{8}
+}
+
+type GetGitHubAuthURLResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGitHubAuthURLResponse) Reset() {
+	*x = GetGitHubAuthURLResponse{}
+	mi := &file_auth_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGitHubAuthURLResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGitHubAuthURLResponse) ProtoMessage() {}
+
+func (x *GetGitHubAuthURLResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGitHubAuthURLResponse.ProtoReflect.Descriptor instead.
+func (*GetGitHubAuthURLResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetGitHubAuthURLResponse) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type HandleGitHubCallbackRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	InstallationId int64                  `protobuf:"varint,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	SetupAction    string                 `protobuf:"bytes,2,opt,name=setup_action,json=setupAction,proto3" json:"setup_action,omitempty"` // 'install' | 'update'
+	UserId         string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                // authenticated user email
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *HandleGitHubCallbackRequest) Reset() {
+	*x = HandleGitHubCallbackRequest{}
+	mi := &file_auth_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HandleGitHubCallbackRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HandleGitHubCallbackRequest) ProtoMessage() {}
+
+func (x *HandleGitHubCallbackRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HandleGitHubCallbackRequest.ProtoReflect.Descriptor instead.
+func (*HandleGitHubCallbackRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *HandleGitHubCallbackRequest) GetInstallationId() int64 {
+	if x != nil {
+		return x.InstallationId
+	}
+	return 0
+}
+
+func (x *HandleGitHubCallbackRequest) GetSetupAction() string {
+	if x != nil {
+		return x.SetupAction
+	}
+	return ""
+}
+
+func (x *HandleGitHubCallbackRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+// Internal RPC used by allocator
+type GetGitHubAccessTokenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGitHubAccessTokenRequest) Reset() {
+	*x = GetGitHubAccessTokenRequest{}
+	mi := &file_auth_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGitHubAccessTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGitHubAccessTokenRequest) ProtoMessage() {}
+
+func (x *GetGitHubAccessTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGitHubAccessTokenRequest.ProtoReflect.Descriptor instead.
+func (*GetGitHubAccessTokenRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetGitHubAccessTokenRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetGitHubAccessTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	ExpiresAt     int64                  `protobuf:"varint,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"` // epoch seconds
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGitHubAccessTokenResponse) Reset() {
+	*x = GetGitHubAccessTokenResponse{}
+	mi := &file_auth_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGitHubAccessTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGitHubAccessTokenResponse) ProtoMessage() {}
+
+func (x *GetGitHubAccessTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGitHubAccessTokenResponse.ProtoReflect.Descriptor instead.
+func (*GetGitHubAccessTokenResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetGitHubAccessTokenResponse) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *GetGitHubAccessTokenResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
 var File_auth_proto protoreflect.FileDescriptor
 
 const file_auth_proto_rawDesc = "" +
@@ -447,13 +685,29 @@ const file_auth_proto_rawDesc = "" +
 	"\x18GetGoogleAuthURLResponse\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\"1\n" +
 	"\x1bHandleGoogleCallbackRequest\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\tR\x04code2\xf1\x02\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"\x19\n" +
+	"\x17GetGitHubAuthURLRequest\",\n" +
+	"\x18GetGitHubAuthURLResponse\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\"\x82\x01\n" +
+	"\x1bHandleGitHubCallbackRequest\x12'\n" +
+	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12!\n" +
+	"\fsetup_action\x18\x02 \x01(\tR\vsetupAction\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\"6\n" +
+	"\x1bGetGitHubAccessTokenRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"S\n" +
+	"\x1cGetGitHubAccessTokenResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\x03R\texpiresAt2\xfe\x04\n" +
 	"\vAuthService\x125\n" +
 	"\x06Signup\x12\x14.proto.SignupRequest\x1a\x13.proto.AuthResponse\"\x00\x123\n" +
 	"\x05Login\x12\x13.proto.LoginRequest\x1a\x13.proto.AuthResponse\"\x00\x12L\n" +
 	"\rValidateToken\x12\x1b.proto.ValidateTokenRequest\x1a\x1c.proto.ValidateTokenResponse\"\x00\x12U\n" +
 	"\x10GetGoogleAuthURL\x12\x1e.proto.GetGoogleAuthURLRequest\x1a\x1f.proto.GetGoogleAuthURLResponse\"\x00\x12Q\n" +
-	"\x14HandleGoogleCallback\x12\".proto.HandleGoogleCallbackRequest\x1a\x13.proto.AuthResponse\"\x00B\n" +
+	"\x14HandleGoogleCallback\x12\".proto.HandleGoogleCallbackRequest\x1a\x13.proto.AuthResponse\"\x00\x12U\n" +
+	"\x10GetGitHubAuthURL\x12\x1e.proto.GetGitHubAuthURLRequest\x1a\x1f.proto.GetGitHubAuthURLResponse\"\x00\x12Q\n" +
+	"\x14HandleGitHubCallback\x12\".proto.HandleGitHubCallbackRequest\x1a\x13.proto.AuthResponse\"\x00\x12a\n" +
+	"\x14GetGitHubAccessToken\x12\".proto.GetGitHubAccessTokenRequest\x1a#.proto.GetGitHubAccessTokenResponse\"\x00B\n" +
 	"Z\b./;protob\x06proto3"
 
 var (
@@ -468,33 +722,44 @@ func file_auth_proto_rawDescGZIP() []byte {
 	return file_auth_proto_rawDescData
 }
 
-var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_auth_proto_goTypes = []any{
-	(*SignupRequest)(nil),               // 0: proto.SignupRequest
-	(*LoginRequest)(nil),                // 1: proto.LoginRequest
-	(*AuthResponse)(nil),                // 2: proto.AuthResponse
-	(*ValidateTokenRequest)(nil),        // 3: proto.ValidateTokenRequest
-	(*ValidateTokenResponse)(nil),       // 4: proto.ValidateTokenResponse
-	(*GetGoogleAuthURLRequest)(nil),     // 5: proto.GetGoogleAuthURLRequest
-	(*GetGoogleAuthURLResponse)(nil),    // 6: proto.GetGoogleAuthURLResponse
-	(*HandleGoogleCallbackRequest)(nil), // 7: proto.HandleGoogleCallbackRequest
+	(*SignupRequest)(nil),                // 0: proto.SignupRequest
+	(*LoginRequest)(nil),                 // 1: proto.LoginRequest
+	(*AuthResponse)(nil),                 // 2: proto.AuthResponse
+	(*ValidateTokenRequest)(nil),         // 3: proto.ValidateTokenRequest
+	(*ValidateTokenResponse)(nil),        // 4: proto.ValidateTokenResponse
+	(*GetGoogleAuthURLRequest)(nil),      // 5: proto.GetGoogleAuthURLRequest
+	(*GetGoogleAuthURLResponse)(nil),     // 6: proto.GetGoogleAuthURLResponse
+	(*HandleGoogleCallbackRequest)(nil),  // 7: proto.HandleGoogleCallbackRequest
+	(*GetGitHubAuthURLRequest)(nil),      // 8: proto.GetGitHubAuthURLRequest
+	(*GetGitHubAuthURLResponse)(nil),     // 9: proto.GetGitHubAuthURLResponse
+	(*HandleGitHubCallbackRequest)(nil),  // 10: proto.HandleGitHubCallbackRequest
+	(*GetGitHubAccessTokenRequest)(nil),  // 11: proto.GetGitHubAccessTokenRequest
+	(*GetGitHubAccessTokenResponse)(nil), // 12: proto.GetGitHubAccessTokenResponse
 }
 var file_auth_proto_depIdxs = []int32{
-	0, // 0: proto.AuthService.Signup:input_type -> proto.SignupRequest
-	1, // 1: proto.AuthService.Login:input_type -> proto.LoginRequest
-	3, // 2: proto.AuthService.ValidateToken:input_type -> proto.ValidateTokenRequest
-	5, // 3: proto.AuthService.GetGoogleAuthURL:input_type -> proto.GetGoogleAuthURLRequest
-	7, // 4: proto.AuthService.HandleGoogleCallback:input_type -> proto.HandleGoogleCallbackRequest
-	2, // 5: proto.AuthService.Signup:output_type -> proto.AuthResponse
-	2, // 6: proto.AuthService.Login:output_type -> proto.AuthResponse
-	4, // 7: proto.AuthService.ValidateToken:output_type -> proto.ValidateTokenResponse
-	6, // 8: proto.AuthService.GetGoogleAuthURL:output_type -> proto.GetGoogleAuthURLResponse
-	2, // 9: proto.AuthService.HandleGoogleCallback:output_type -> proto.AuthResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: proto.AuthService.Signup:input_type -> proto.SignupRequest
+	1,  // 1: proto.AuthService.Login:input_type -> proto.LoginRequest
+	3,  // 2: proto.AuthService.ValidateToken:input_type -> proto.ValidateTokenRequest
+	5,  // 3: proto.AuthService.GetGoogleAuthURL:input_type -> proto.GetGoogleAuthURLRequest
+	7,  // 4: proto.AuthService.HandleGoogleCallback:input_type -> proto.HandleGoogleCallbackRequest
+	8,  // 5: proto.AuthService.GetGitHubAuthURL:input_type -> proto.GetGitHubAuthURLRequest
+	10, // 6: proto.AuthService.HandleGitHubCallback:input_type -> proto.HandleGitHubCallbackRequest
+	11, // 7: proto.AuthService.GetGitHubAccessToken:input_type -> proto.GetGitHubAccessTokenRequest
+	2,  // 8: proto.AuthService.Signup:output_type -> proto.AuthResponse
+	2,  // 9: proto.AuthService.Login:output_type -> proto.AuthResponse
+	4,  // 10: proto.AuthService.ValidateToken:output_type -> proto.ValidateTokenResponse
+	6,  // 11: proto.AuthService.GetGoogleAuthURL:output_type -> proto.GetGoogleAuthURLResponse
+	2,  // 12: proto.AuthService.HandleGoogleCallback:output_type -> proto.AuthResponse
+	9,  // 13: proto.AuthService.GetGitHubAuthURL:output_type -> proto.GetGitHubAuthURLResponse
+	2,  // 14: proto.AuthService.HandleGitHubCallback:output_type -> proto.AuthResponse
+	12, // 15: proto.AuthService.GetGitHubAccessToken:output_type -> proto.GetGitHubAccessTokenResponse
+	8,  // [8:16] is the sub-list for method output_type
+	0,  // [0:8] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_auth_proto_init() }
@@ -508,7 +773,7 @@ func file_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
