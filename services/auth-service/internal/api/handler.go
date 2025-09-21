@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 
 	"github.com/Aadithya-J/code_nest/services/auth-service/internal/service"
@@ -65,8 +67,8 @@ func (h *Handler) Health(c *gin.Context) {
 }
 
 func (h *Handler) GoogleLogin(c *gin.Context) {
-	// generate state (in production, store and verify state)
-	state := "state"
+	// Generate secure random state for CSRF protection
+	state := generateSecureState()
 	req := &proto.GetGoogleAuthURLRequest{State: state}
 	urlResp, err := h.authService.GetGoogleAuthURL(c.Request.Context(), req)
 	if err != nil {
@@ -89,4 +91,11 @@ func (h *Handler) GoogleCallback(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"token": token})
+}
+
+// generateSecureState creates a cryptographically secure random state for OAuth
+func generateSecureState() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
 }

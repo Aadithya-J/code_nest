@@ -5,9 +5,11 @@ import (
 )
 
 type User struct {
-	ID           uint   `gorm:"primaryKey"`
-	Email        string `gorm:"uniqueIndex;not null"`
-	PasswordHash string `gorm:"not null"`
+	ID                     uint   `gorm:"primaryKey"`
+	Email                  string `gorm:"uniqueIndex;not null"`
+	PasswordHash           string `gorm:"not null"`
+	GitHubInstallationID   int64  `gorm:"column:github_installation_id"`
+	GitHubUsername         string `gorm:"column:github_username"`
 }
 
 type UserRepo struct {
@@ -28,4 +30,11 @@ func (r *UserRepo) FindByEmail(email string) (*User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *UserRepo) UpdateGitHubInfo(userID uint, installationID int64, username string) error {
+	return r.db.Model(&User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"github_installation_id": installationID,
+		"github_username":       username,
+	}).Error
 }

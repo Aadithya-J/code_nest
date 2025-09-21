@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -17,6 +18,11 @@ type Config struct {
 	}
 	JWT struct {
 		Secret string
+	}
+	GitHub struct {
+		AppID       int64
+		AppSlug     string
+		PrivateKeyPath string
 	}
 	Google struct {
 		ClientID     string
@@ -71,10 +77,27 @@ func LoadConfig() Config {
 
 	redirect := os.Getenv("GOOGLE_REDIRECT_URL")
 	if redirect == "" {
-		redirect = "http://localhost:8080/auth/google/callback"
-		log.Printf("GOOGLE_REDIRECT_URL not set, using default %s", redirect)
+		log.Fatalf("GOOGLE_REDIRECT_URL env var required")
 	}
 	cfg.Google.RedirectURL = redirect
+
+	// GitHub App
+	appIDStr := os.Getenv("GITHUB_APP_ID")
+	if appIDStr == "" {
+		log.Fatalf("GITHUB_APP_ID env var required")
+	}
+	var appID int64
+	fmt.Sscan(appIDStr, &appID)
+	cfg.GitHub.AppID = appID
+	cfg.GitHub.AppSlug = os.Getenv("GITHUB_APP_SLUG")
+	if cfg.GitHub.AppSlug == "" {
+		log.Fatalf("GITHUB_APP_SLUG env var required")
+	}
+	pkPath := os.Getenv("GITHUB_PRIVATE_KEY_PATH")
+	if pkPath == "" {
+		pkPath = "/app/github_app.pem"
+	}
+	cfg.GitHub.PrivateKeyPath = pkPath
 
 	return cfg
 }
