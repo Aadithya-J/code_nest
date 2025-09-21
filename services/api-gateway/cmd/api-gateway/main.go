@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -93,7 +97,9 @@ func main() {
 			c.JSON(http.StatusOK, resp)
 		})
 		auth.GET("/google/login", func(c *gin.Context) {
-			resp, err := authClient.GetGoogleAuthURL(context.Background(), &proto.GetGoogleAuthURLRequest{State: "state"})
+			// Generate secure random state for CSRF protection
+			state := generateSecureState()
+			resp, err := authClient.GetGoogleAuthURL(context.Background(), &proto.GetGoogleAuthURLRequest{State: state})
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -113,6 +119,76 @@ func main() {
 			}
 			c.JSON(http.StatusOK, resp)
 		})
+
+		// GitHub OAuth routes
+		auth.GET("/github/login", func(c *gin.Context) {
+			resp, err := authClient.GetGitHubAuthURL(context.Background(), &proto.GetGitHubAuthURLRequest{})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.Redirect(http.StatusTemporaryRedirect, resp.Url)
+		})
+
+		auth.GET("/github/callback", authMiddleware.Authorize, func(c *gin.Context) {
+			installationID := c.Query("installation_id")
+			setupAction := c.Query("setup_action")
+			if installationID == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "installation_id query param required"})
+				return
+			}
+			
+			// Convert installation_id to int64
+			var instID int64
+			if _, err := fmt.Sscanf(installationID, "%d", &instID); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid installation_id"})
+				return
+			}
+			
+			// Get authenticated user from JWT
+			userID := c.GetString("user_id")
+			
+			resp, err := authClient.HandleGitHubCallback(context.Background(), &proto.HandleGitHubCallbackRequest{
+				InstallationId: instID,
+				SetupAction:    setupAction,
+				UserId:         userID, // Pass the authenticated user
+			})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, resp)
+		})
+
+		// GitHub status endpoint - only available in development
+		if os.Getenv("APP_ENV") == "development" || os.Getenv("APP_ENV") == "" {
+			auth.GET("/github/status", authMiddleware.Authorize, func(c *gin.Context) {
+				userID := c.GetString("user_id")
+				
+				// Check if user has GitHub linked by trying to get a token
+				tokenResp, err := authClient.GetGitHubAccessToken(context.Background(), &proto.GetGitHubAccessTokenRequest{
+					UserId: userID,
+				})
+				
+				githubLinked := false
+				var message string
+				
+				if err != nil {
+					// User doesn't have GitHub linked or token generation failed
+					message = "GitHub not linked or token unavailable"
+				} else if tokenResp.Token != "" {
+					// User has GitHub linked and token is available
+					githubLinked = true
+					message = "GitHub linked successfully"
+				}
+				
+				c.JSON(http.StatusOK, gin.H{
+					"user_id":       userID,
+					"github_linked": githubLinked,
+					"message":       message + " (dev only)",
+				})
+			})
+		}
 	}
 
 	workspace := r.Group("/workspace", authMiddleware.Authorize)
@@ -274,5 +350,12 @@ func (am *AuthMiddleware) Authorize(c *gin.Context) {
 
 	c.Set("user_id", sub)
 	c.Next()
+}
+
+// generateSecureState creates a cryptographically secure random state for OAuth
+func generateSecureState() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
 }
 
