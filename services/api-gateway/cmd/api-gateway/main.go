@@ -158,6 +158,52 @@ func main() {
 			c.JSON(http.StatusOK, resp)
 		})
 
+		workspace.POST("/files", func(c *gin.Context) {
+			var req proto.SaveFileRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			req.UserId = c.GetString("user_id")
+			resp, err := workspaceClient.SaveFile(context.Background(), &req)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, resp)
+		})
+
+		workspace.GET("/file", func(c *gin.Context) {
+			projectID := c.Query("projectId")
+			path := c.Query("path")
+			if projectID == "" || path == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "projectId and path required"})
+				return
+			}
+			req := proto.GetFileRequest{ProjectId: projectID, Path: path, UserId: c.GetString("user_id")}
+			resp, err := workspaceClient.GetFile(context.Background(), &req)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, resp)
+		})
+
+		workspace.GET("/files", func(c *gin.Context) {
+			projectID := c.Query("projectId")
+			if projectID == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "projectId required"})
+				return
+			}
+			req := proto.ListFilesRequest{ProjectId: projectID, UserId: c.GetString("user_id")}
+			resp, err := workspaceClient.ListFiles(context.Background(), &req)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, resp)
+		})
+
 		workspace.DELETE("/projects/:id", func(c *gin.Context) {
 			req := proto.DeleteProjectRequest{
 				Id:     c.Param("id"),

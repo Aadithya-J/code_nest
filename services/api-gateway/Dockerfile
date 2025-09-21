@@ -4,16 +4,18 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Copy entire repository (needed for Go workspace with local dependencies)
-COPY . .
+# Copy minimal files first to leverage Docker layer cache
+COPY proto/ proto/
+COPY services/api-gateway/go.* services/api-gateway/
 
-# Enter service directory
-WORKDIR /app/services/api-gateway
-
-# Use BuildKit cache mounts for faster builds
+# Download deps (cached unless go.* change)
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    go mod download
+    cd services/api-gateway && go mod download
+
+# Now copy the actual source
+COPY services/api-gateway services/api-gateway
+WORKDIR /app/services/api-gateway
 
 # Build with cache mounts
 RUN --mount=type=cache,target=/go/pkg/mod \

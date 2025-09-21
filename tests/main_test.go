@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Aadithya-J/code_nest/proto"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -209,6 +210,77 @@ func (s *E2ETestSuite) TestProtectedRoute() {
 }
 
 // TestInvalidToken tests accessing a protected endpoint with invalid/missing token.
+// TestFileManagementEndpoints tests the full lifecycle of file management.
+func (s *E2ETestSuite) TestFileManagementEndpoints() {
+	// 1. Signup to get a token
+	uniqueEmail := fmt.Sprintf("fileuser_%d@example.com", time.Now().UnixNano())
+	signupData := map[string]string{"email": uniqueEmail, "password": testPassword}
+	signupBody, _ := json.Marshal(signupData)
+	signupReq, _ := http.NewRequest("POST", apiGatewayURL+"/auth/signup", bytes.NewBuffer(signupBody))
+	signupReq.Header.Set("Content-Type", "application/json")
+	signupResp, err := s.client.Do(signupReq)
+	s.NoError(err)
+	defer signupResp.Body.Close()
+	s.Equal(http.StatusOK, signupResp.StatusCode)
+	var authResponse map[string]string
+	json.NewDecoder(signupResp.Body).Decode(&authResponse)
+	token := authResponse["token"]
+	s.NotEmpty(token)
+
+	// 2. Create a project
+	projectData := map[string]string{"name": "Test Project for Files"}
+	projectBody, _ := json.Marshal(projectData)
+	createProjectReq, _ := http.NewRequest("POST", apiGatewayURL+"/workspace/projects", bytes.NewBuffer(projectBody))
+	createProjectReq.Header.Set("Content-Type", "application/json")
+	createProjectReq.Header.Set("Authorization", "Bearer "+token)
+	createProjectResp, err := s.client.Do(createProjectReq)
+	s.NoError(err)
+	defer createProjectResp.Body.Close()
+	s.Equal(http.StatusOK, createProjectResp.StatusCode)
+	var projectResponse proto.ProjectResponse
+	json.NewDecoder(createProjectResp.Body).Decode(&projectResponse)
+	projectID := projectResponse.Project.Id
+	s.NotEmpty(projectID)
+
+	// 3. Save a file to the project
+	fileData := map[string]string{
+		"projectId": projectID,
+		"path":      "main.go",
+		"content":   "package main; func main() {}",
+	}
+	fileBody, _ := json.Marshal(fileData)
+	saveFileReq, _ := http.NewRequest("POST", apiGatewayURL+"/workspace/files", bytes.NewBuffer(fileBody))
+	saveFileReq.Header.Set("Content-Type", "application/json")
+	saveFileReq.Header.Set("Authorization", "Bearer "+token)
+	saveFileResp, err := s.client.Do(saveFileReq)
+	s.NoError(err)
+	defer saveFileResp.Body.Close()
+	s.Equal(http.StatusOK, saveFileResp.StatusCode)
+
+	// 4. Get the file back
+	getFileReq, _ := http.NewRequest("GET", fmt.Sprintf("%s/workspace/file?projectId=%s&path=main.go", apiGatewayURL, projectID), nil)
+	getFileReq.Header.Set("Authorization", "Bearer "+token)
+	getFileResp, err := s.client.Do(getFileReq)
+	s.NoError(err)
+	defer getFileResp.Body.Close()
+	s.Equal(http.StatusOK, getFileResp.StatusCode)
+	var fileGetResponse proto.FileResponse
+	json.NewDecoder(getFileResp.Body).Decode(&fileGetResponse)
+	s.Equal("package main; func main() {}", fileGetResponse.File.Content)
+
+	// 5. List files in the project
+	listFilesReq, _ := http.NewRequest("GET", fmt.Sprintf("%s/workspace/files?projectId=%s", apiGatewayURL, projectID), nil)
+	listFilesReq.Header.Set("Authorization", "Bearer "+token)
+	listFilesResp, err := s.client.Do(listFilesReq)
+	s.NoError(err)
+	defer listFilesResp.Body.Close()
+	s.Equal(http.StatusOK, listFilesResp.StatusCode)
+	var listFilesResponse proto.ListFilesResponse
+	json.NewDecoder(listFilesResp.Body).Decode(&listFilesResponse)
+	s.Len(listFilesResponse.Files, 1)
+	s.Equal("main.go", listFilesResponse.Files[0].Path)
+}
+
 func (s *E2ETestSuite) TestInvalidToken() {
 	// Test 1: No Authorization header
 	req1, err := http.NewRequest("GET", apiGatewayURL+"/workspace/projects", nil)

@@ -25,7 +25,7 @@ func main() {
 	gormDB.Exec(fmt.Sprintf("SET search_path TO %s", cfg.DBSchema))
 
 	log.Println("Running migrations...")
-	if err := gormDB.AutoMigrate(&models.Project{}); err != nil {
+	if err := gormDB.AutoMigrate(&models.Project{}, &models.File{}); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 	log.Println("Migrations completed.")

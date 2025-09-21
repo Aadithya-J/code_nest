@@ -5,17 +5,18 @@ FROM golang:1.24-alpine AS builder
 # Set workdir at repo root
 WORKDIR /app
 
-# Copy entire repository
-COPY . .
+# Copy minimal files first to leverage Docker layer cache
+COPY proto/ proto/
+COPY services/auth-service/go.* services/auth-service/
 
-# Enter service directory
-WORKDIR /app/services/auth-service
-
-# Use BuildKit cache mounts for much faster builds
-# This caches the Go module cache and build cache across builds
+# Download deps (cached unless go.* change)
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    go mod download
+    cd services/auth-service && go mod download
+
+# Now copy the actual source
+COPY services/auth-service services/auth-service
+WORKDIR /app/services/auth-service
 
 # Build with cache mounts
 RUN --mount=type=cache,target=/go/pkg/mod \
