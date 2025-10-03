@@ -816,6 +816,186 @@ func (x *FileResponse) GetFile() *File {
 	return nil
 }
 
+type CreateWorkspaceSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId     string                 `protobuf:"bytes,1,opt,name=projectId,proto3" json:"projectId,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`         // Injected by API Gateway
+	GitRepoUrl    string                 `protobuf:"bytes,3,opt,name=gitRepoUrl,proto3" json:"gitRepoUrl,omitempty"` // Optional: URL of the git repo to clone
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateWorkspaceSessionRequest) Reset() {
+	*x = CreateWorkspaceSessionRequest{}
+	mi := &file_proto_workspace_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateWorkspaceSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateWorkspaceSessionRequest) ProtoMessage() {}
+
+func (x *CreateWorkspaceSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_workspace_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateWorkspaceSessionRequest.ProtoReflect.Descriptor instead.
+func (*CreateWorkspaceSessionRequest) Descriptor() ([]byte, []int) {
+	return file_proto_workspace_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *CreateWorkspaceSessionRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *CreateWorkspaceSessionRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *CreateWorkspaceSessionRequest) GetGitRepoUrl() string {
+	if x != nil {
+		return x.GitRepoUrl
+	}
+	return ""
+}
+
+type ReleaseWorkspaceSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=sessionId,proto3" json:"sessionId,omitempty"`
+	ProjectId     string                 `protobuf:"bytes,2,opt,name=projectId,proto3" json:"projectId,omitempty"` // For authorization and context
+	UserId        string                 `protobuf:"bytes,3,opt,name=userId,proto3" json:"userId,omitempty"`       // For authorization
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReleaseWorkspaceSessionRequest) Reset() {
+	*x = ReleaseWorkspaceSessionRequest{}
+	mi := &file_proto_workspace_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReleaseWorkspaceSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReleaseWorkspaceSessionRequest) ProtoMessage() {}
+
+func (x *ReleaseWorkspaceSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_workspace_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReleaseWorkspaceSessionRequest.ProtoReflect.Descriptor instead.
+func (*ReleaseWorkspaceSessionRequest) Descriptor() ([]byte, []int) {
+	return file_proto_workspace_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ReleaseWorkspaceSessionRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *ReleaseWorkspaceSessionRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *ReleaseWorkspaceSessionRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type WorkspaceSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=sessionId,proto3" json:"sessionId,omitempty"`
+	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkspaceSessionResponse) Reset() {
+	*x = WorkspaceSessionResponse{}
+	mi := &file_proto_workspace_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkspaceSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkspaceSessionResponse) ProtoMessage() {}
+
+func (x *WorkspaceSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_workspace_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkspaceSessionResponse.ProtoReflect.Descriptor instead.
+func (*WorkspaceSessionResponse) Descriptor() ([]byte, []int) {
+	return file_proto_workspace_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *WorkspaceSessionResponse) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *WorkspaceSessionResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *WorkspaceSessionResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_proto_workspace_proto protoreflect.FileDescriptor
 
 const file_proto_workspace_proto_rawDesc = "" +
@@ -870,7 +1050,21 @@ const file_proto_workspace_proto_rawDesc = "" +
 	"\x11ListFilesResponse\x12!\n" +
 	"\x05files\x18\x01 \x03(\v2\v.proto.FileR\x05files\"/\n" +
 	"\fFileResponse\x12\x1f\n" +
-	"\x04file\x18\x01 \x01(\v2\v.proto.FileR\x04file2\xe0\x03\n" +
+	"\x04file\x18\x01 \x01(\v2\v.proto.FileR\x04file\"u\n" +
+	"\x1dCreateWorkspaceSessionRequest\x12\x1c\n" +
+	"\tprojectId\x18\x01 \x01(\tR\tprojectId\x12\x16\n" +
+	"\x06userId\x18\x02 \x01(\tR\x06userId\x12\x1e\n" +
+	"\n" +
+	"gitRepoUrl\x18\x03 \x01(\tR\n" +
+	"gitRepoUrl\"t\n" +
+	"\x1eReleaseWorkspaceSessionRequest\x12\x1c\n" +
+	"\tsessionId\x18\x01 \x01(\tR\tsessionId\x12\x1c\n" +
+	"\tprojectId\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
+	"\x06userId\x18\x03 \x01(\tR\x06userId\"j\n" +
+	"\x18WorkspaceSessionResponse\x12\x1c\n" +
+	"\tsessionId\x18\x01 \x01(\tR\tsessionId\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage2\xe0\x03\n" +
 	"\x10WorkspaceService\x12D\n" +
 	"\rCreateProject\x12\x1b.proto.CreateProjectRequest\x1a\x16.proto.ProjectResponse\x12D\n" +
 	"\vGetProjects\x12\x19.proto.GetProjectsRequest\x1a\x1a.proto.GetProjectsResponse\x12D\n" +
@@ -878,7 +1072,10 @@ const file_proto_workspace_proto_rawDesc = "" +
 	"\rDeleteProject\x12\x1b.proto.DeleteProjectRequest\x1a\x1c.proto.DeleteProjectResponse\x127\n" +
 	"\bSaveFile\x12\x16.proto.SaveFileRequest\x1a\x13.proto.FileResponse\x125\n" +
 	"\aGetFile\x12\x15.proto.GetFileRequest\x1a\x13.proto.FileResponse\x12>\n" +
-	"\tListFiles\x12\x17.proto.ListFilesRequest\x1a\x18.proto.ListFilesResponseB\n" +
+	"\tListFiles\x12\x17.proto.ListFilesRequest\x1a\x18.proto.ListFilesResponse2\xd4\x01\n" +
+	"\x0eSessionService\x12_\n" +
+	"\x16CreateWorkspaceSession\x12$.proto.CreateWorkspaceSessionRequest\x1a\x1f.proto.WorkspaceSessionResponse\x12a\n" +
+	"\x17ReleaseWorkspaceSession\x12%.proto.ReleaseWorkspaceSessionRequest\x1a\x1f.proto.WorkspaceSessionResponseB\n" +
 	"Z\b./;protob\x06proto3"
 
 var (
@@ -893,22 +1090,25 @@ func file_proto_workspace_proto_rawDescGZIP() []byte {
 	return file_proto_workspace_proto_rawDescData
 }
 
-var file_proto_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_proto_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_proto_workspace_proto_goTypes = []any{
-	(*Project)(nil),               // 0: proto.Project
-	(*CreateProjectRequest)(nil),  // 1: proto.CreateProjectRequest
-	(*GetProjectsRequest)(nil),    // 2: proto.GetProjectsRequest
-	(*GetProjectsResponse)(nil),   // 3: proto.GetProjectsResponse
-	(*UpdateProjectRequest)(nil),  // 4: proto.UpdateProjectRequest
-	(*DeleteProjectRequest)(nil),  // 5: proto.DeleteProjectRequest
-	(*DeleteProjectResponse)(nil), // 6: proto.DeleteProjectResponse
-	(*ProjectResponse)(nil),       // 7: proto.ProjectResponse
-	(*File)(nil),                  // 8: proto.File
-	(*SaveFileRequest)(nil),       // 9: proto.SaveFileRequest
-	(*GetFileRequest)(nil),        // 10: proto.GetFileRequest
-	(*ListFilesRequest)(nil),      // 11: proto.ListFilesRequest
-	(*ListFilesResponse)(nil),     // 12: proto.ListFilesResponse
-	(*FileResponse)(nil),          // 13: proto.FileResponse
+	(*Project)(nil),                        // 0: proto.Project
+	(*CreateProjectRequest)(nil),           // 1: proto.CreateProjectRequest
+	(*GetProjectsRequest)(nil),             // 2: proto.GetProjectsRequest
+	(*GetProjectsResponse)(nil),            // 3: proto.GetProjectsResponse
+	(*UpdateProjectRequest)(nil),           // 4: proto.UpdateProjectRequest
+	(*DeleteProjectRequest)(nil),           // 5: proto.DeleteProjectRequest
+	(*DeleteProjectResponse)(nil),          // 6: proto.DeleteProjectResponse
+	(*ProjectResponse)(nil),                // 7: proto.ProjectResponse
+	(*File)(nil),                           // 8: proto.File
+	(*SaveFileRequest)(nil),                // 9: proto.SaveFileRequest
+	(*GetFileRequest)(nil),                 // 10: proto.GetFileRequest
+	(*ListFilesRequest)(nil),               // 11: proto.ListFilesRequest
+	(*ListFilesResponse)(nil),              // 12: proto.ListFilesResponse
+	(*FileResponse)(nil),                   // 13: proto.FileResponse
+	(*CreateWorkspaceSessionRequest)(nil),  // 14: proto.CreateWorkspaceSessionRequest
+	(*ReleaseWorkspaceSessionRequest)(nil), // 15: proto.ReleaseWorkspaceSessionRequest
+	(*WorkspaceSessionResponse)(nil),       // 16: proto.WorkspaceSessionResponse
 }
 var file_proto_workspace_proto_depIdxs = []int32{
 	0,  // 0: proto.GetProjectsResponse.projects:type_name -> proto.Project
@@ -922,15 +1122,19 @@ var file_proto_workspace_proto_depIdxs = []int32{
 	9,  // 8: proto.WorkspaceService.SaveFile:input_type -> proto.SaveFileRequest
 	10, // 9: proto.WorkspaceService.GetFile:input_type -> proto.GetFileRequest
 	11, // 10: proto.WorkspaceService.ListFiles:input_type -> proto.ListFilesRequest
-	7,  // 11: proto.WorkspaceService.CreateProject:output_type -> proto.ProjectResponse
-	3,  // 12: proto.WorkspaceService.GetProjects:output_type -> proto.GetProjectsResponse
-	7,  // 13: proto.WorkspaceService.UpdateProject:output_type -> proto.ProjectResponse
-	6,  // 14: proto.WorkspaceService.DeleteProject:output_type -> proto.DeleteProjectResponse
-	13, // 15: proto.WorkspaceService.SaveFile:output_type -> proto.FileResponse
-	13, // 16: proto.WorkspaceService.GetFile:output_type -> proto.FileResponse
-	12, // 17: proto.WorkspaceService.ListFiles:output_type -> proto.ListFilesResponse
-	11, // [11:18] is the sub-list for method output_type
-	4,  // [4:11] is the sub-list for method input_type
+	14, // 11: proto.SessionService.CreateWorkspaceSession:input_type -> proto.CreateWorkspaceSessionRequest
+	15, // 12: proto.SessionService.ReleaseWorkspaceSession:input_type -> proto.ReleaseWorkspaceSessionRequest
+	7,  // 13: proto.WorkspaceService.CreateProject:output_type -> proto.ProjectResponse
+	3,  // 14: proto.WorkspaceService.GetProjects:output_type -> proto.GetProjectsResponse
+	7,  // 15: proto.WorkspaceService.UpdateProject:output_type -> proto.ProjectResponse
+	6,  // 16: proto.WorkspaceService.DeleteProject:output_type -> proto.DeleteProjectResponse
+	13, // 17: proto.WorkspaceService.SaveFile:output_type -> proto.FileResponse
+	13, // 18: proto.WorkspaceService.GetFile:output_type -> proto.FileResponse
+	12, // 19: proto.WorkspaceService.ListFiles:output_type -> proto.ListFilesResponse
+	16, // 20: proto.SessionService.CreateWorkspaceSession:output_type -> proto.WorkspaceSessionResponse
+	16, // 21: proto.SessionService.ReleaseWorkspaceSession:output_type -> proto.WorkspaceSessionResponse
+	13, // [13:22] is the sub-list for method output_type
+	4,  // [4:13] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -947,9 +1151,9 @@ func file_proto_workspace_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_workspace_proto_rawDesc), len(file_proto_workspace_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   17,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_proto_workspace_proto_goTypes,
 		DependencyIndexes: file_proto_workspace_proto_depIdxs,

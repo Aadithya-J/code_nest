@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package allocator;
+
+option go_package = "./;proto";
+
+// Runner-Allocator Service
+// Manages 3 fixed runner containers + queue system
+service RunnerAllocatorService {
+    // Request a workspace slot for a user
+    rpc RequestSlot(SlotRequest) returns (SlotResponse);
+    
+    // Release a workspace slot
+    rpc ReleaseSlot(ReleaseSlotRequest) returns (ReleaseSlotResponse);
+    
+    // Get current allocation status
+    rpc GetStatus(StatusRequest) returns (StatusResponse);
+}
+
+message SlotRequest {
+    string user_id = 1;
+    string project_id = 2;
+    string template_type = 3; // "react-vite" | "nodejs-express" | "blank"
+    string github_repo = 4;   // optional: clone from GitHub
+}
+
+message SlotResponse {
+    string session_id = 1;
+    string pod_ip = 2;
+    int32 preview_port = 3;    // port 3000 for user app
+    int32 terminal_port = 4;   // port 7681 for ttyd terminal
+    string status = 5;         // "allocated" | "queued" | "error"
+    string message = 6;
+}
+
+message ReleaseSlotRequest {
+    string session_id = 1;
+    string user_id = 2;
+}
+
+message ReleaseSlotResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message StatusRequest {
+    // empty - get overall status
+}
+
+message StatusResponse {
+    int32 active_slots = 1;
+    int32 queued_users = 2;
+    int32 available_slots = 3;
+    repeated RunnerSlot slots = 4;
+}
+
+message RunnerSlot {
+    string slot_id = 1;
+    string user_id = 2;
+    string project_id = 3;
+    string session_id = 4;
+    string status = 5;  // "idle" | "active" | "building"
+    int64 created_at = 6;
+}

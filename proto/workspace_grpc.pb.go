@@ -365,3 +365,151 @@ var WorkspaceService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/workspace.proto",
 }
+
+const (
+	SessionService_CreateWorkspaceSession_FullMethodName  = "/proto.SessionService/CreateWorkspaceSession"
+	SessionService_ReleaseWorkspaceSession_FullMethodName = "/proto.SessionService/ReleaseWorkspaceSession"
+)
+
+// SessionServiceClient is the client API for SessionService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// The Session service definition for managing workspace lifecycles.
+type SessionServiceClient interface {
+	// Requests the creation of a new workspace session.
+	CreateWorkspaceSession(ctx context.Context, in *CreateWorkspaceSessionRequest, opts ...grpc.CallOption) (*WorkspaceSessionResponse, error)
+	// Requests the release of an active workspace session.
+	ReleaseWorkspaceSession(ctx context.Context, in *ReleaseWorkspaceSessionRequest, opts ...grpc.CallOption) (*WorkspaceSessionResponse, error)
+}
+
+type sessionServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewSessionServiceClient(cc grpc.ClientConnInterface) SessionServiceClient {
+	return &sessionServiceClient{cc}
+}
+
+func (c *sessionServiceClient) CreateWorkspaceSession(ctx context.Context, in *CreateWorkspaceSessionRequest, opts ...grpc.CallOption) (*WorkspaceSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkspaceSessionResponse)
+	err := c.cc.Invoke(ctx, SessionService_CreateWorkspaceSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sessionServiceClient) ReleaseWorkspaceSession(ctx context.Context, in *ReleaseWorkspaceSessionRequest, opts ...grpc.CallOption) (*WorkspaceSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkspaceSessionResponse)
+	err := c.cc.Invoke(ctx, SessionService_ReleaseWorkspaceSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// SessionServiceServer is the server API for SessionService service.
+// All implementations must embed UnimplementedSessionServiceServer
+// for forward compatibility.
+//
+// The Session service definition for managing workspace lifecycles.
+type SessionServiceServer interface {
+	// Requests the creation of a new workspace session.
+	CreateWorkspaceSession(context.Context, *CreateWorkspaceSessionRequest) (*WorkspaceSessionResponse, error)
+	// Requests the release of an active workspace session.
+	ReleaseWorkspaceSession(context.Context, *ReleaseWorkspaceSessionRequest) (*WorkspaceSessionResponse, error)
+	mustEmbedUnimplementedSessionServiceServer()
+}
+
+// UnimplementedSessionServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedSessionServiceServer struct{}
+
+func (UnimplementedSessionServiceServer) CreateWorkspaceSession(context.Context, *CreateWorkspaceSessionRequest) (*WorkspaceSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateWorkspaceSession not implemented")
+}
+func (UnimplementedSessionServiceServer) ReleaseWorkspaceSession(context.Context, *ReleaseWorkspaceSessionRequest) (*WorkspaceSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReleaseWorkspaceSession not implemented")
+}
+func (UnimplementedSessionServiceServer) mustEmbedUnimplementedSessionServiceServer() {}
+func (UnimplementedSessionServiceServer) testEmbeddedByValue()                        {}
+
+// UnsafeSessionServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to SessionServiceServer will
+// result in compilation errors.
+type UnsafeSessionServiceServer interface {
+	mustEmbedUnimplementedSessionServiceServer()
+}
+
+func RegisterSessionServiceServer(s grpc.ServiceRegistrar, srv SessionServiceServer) {
+	// If the following call pancis, it indicates UnimplementedSessionServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&SessionService_ServiceDesc, srv)
+}
+
+func _SessionService_CreateWorkspaceSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateWorkspaceSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionServiceServer).CreateWorkspaceSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionService_CreateWorkspaceSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionServiceServer).CreateWorkspaceSession(ctx, req.(*CreateWorkspaceSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SessionService_ReleaseWorkspaceSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReleaseWorkspaceSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionServiceServer).ReleaseWorkspaceSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionService_ReleaseWorkspaceSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionServiceServer).ReleaseWorkspaceSession(ctx, req.(*ReleaseWorkspaceSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// SessionService_ServiceDesc is the grpc.ServiceDesc for SessionService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var SessionService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "proto.SessionService",
+	HandlerType: (*SessionServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateWorkspaceSession",
+			Handler:    _SessionService_CreateWorkspaceSession_Handler,
+		},
+		{
+			MethodName: "ReleaseWorkspaceSession",
+			Handler:    _SessionService_ReleaseWorkspaceSession_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "proto/workspace.proto",
+}

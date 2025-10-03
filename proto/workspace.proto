@@ -28,6 +28,15 @@ service WorkspaceService {
   rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
 }
 
+// The Session service definition for managing workspace lifecycles.
+service SessionService {
+  // Requests the creation of a new workspace session.
+  rpc CreateWorkspaceSession(CreateWorkspaceSessionRequest) returns (WorkspaceSessionResponse);
+
+  // Requests the release of an active workspace session.
+  rpc ReleaseWorkspaceSession(ReleaseWorkspaceSessionRequest) returns (WorkspaceSessionResponse);
+}
+
 // Message Definitions
 
 // Represents a single project.
@@ -111,4 +120,24 @@ message ListFilesResponse {
 
 message FileResponse {
   File file = 1;
+}
+
+// Session-related messages
+
+message CreateWorkspaceSessionRequest {
+  string projectId = 1;
+  string userId = 2; // Injected by API Gateway
+  string gitRepoUrl = 3; // Optional: URL of the git repo to clone
+}
+
+message ReleaseWorkspaceSessionRequest {
+  string sessionId = 1;
+  string projectId = 2; // For authorization and context
+  string userId = 3;    // For authorization
+}
+
+message WorkspaceSessionResponse {
+  string sessionId = 1;
+  string status = 2;
+  string message = 3;
 }
