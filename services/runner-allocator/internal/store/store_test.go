@@ -23,9 +23,12 @@ func TestInMemoryStore_SlotManagement(t *testing.T) {
 	})
 
 	t.Run("AssignSlot", func(t *testing.T) {
-		slot, _ := store.FindFreeSlot(ctx)
-		err := store.AssignSlot(ctx, slot.ID, "project-123")
+		slot, err := store.FindFreeSlot(ctx)
 		if err != nil {
+			t.Fatalf("Failed to locate free slot: %v", err)
+		}
+
+		if err := store.AssignSlot(ctx, slot.ID, "project-123"); err != nil {
 			t.Fatalf("Failed to assign slot: %v", err)
 		}
 
@@ -42,16 +45,19 @@ func TestInMemoryStore_SlotManagement(t *testing.T) {
 	})
 
 	t.Run("ReleaseSlot", func(t *testing.T) {
-		slot, _ := store.FindFreeSlot(ctx)
-		err := store.AssignSlot(ctx, slot.ID, "project-456")
+		slot, err := store.FindFreeSlot(ctx)
 		if err != nil {
+			t.Fatalf("Failed to locate free slot: %v", err)
+		}
+
+		if err := store.AssignSlot(ctx, slot.ID, "project-456"); err != nil {
 			t.Fatalf("Failed to assign slot: %v", err)
 		}
-		err = store.ReleaseSlot(ctx, "project-456")
-		if err != nil {
+
+		if err := store.ReleaseSlot(ctx, "project-456"); err != nil {
 			t.Fatalf("Failed to release slot: %v", err)
 		}
-		
+
 		slots, _ := store.GetAllSlots(ctx)
 		var releasedSlot *Slot
 		for _, s := range slots {
@@ -60,7 +66,7 @@ func TestInMemoryStore_SlotManagement(t *testing.T) {
 				break
 			}
 		}
-		
+
 		if releasedSlot.IsBusy {
 			t.Error("Released slot should not be busy")
 		}
@@ -75,7 +81,13 @@ func TestInMemoryStore_QueueManagement(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("AddToQueue", func(t *testing.T) {
-		store.AssignSlot(ctx, "slot-1", "busy-project")
+		slot, err := store.FindFreeSlot(ctx)
+		if err != nil {
+			t.Fatalf("Failed to locate free slot: %v", err)
+		}
+		if err := store.AssignSlot(ctx, slot.ID, "busy-project"); err != nil {
+			t.Fatalf("Failed to assign slot: %v", err)
+		}
 
 		req1 := &QueuedRequest{
 			ProjectID:  "queued-project-1",
@@ -125,9 +137,13 @@ func TestInMemoryStore_QueueManagement(t *testing.T) {
 		req3 := &QueuedRequest{ProjectID: "project-3", UserID: "user-3", SessionID: "session-3"}
 		req4 := &QueuedRequest{ProjectID: "project-4", UserID: "user-4", SessionID: "session-4"}
 		req5 := &QueuedRequest{ProjectID: "project-5", UserID: "user-5", SessionID: "session-5"}
-		
-		store.AddToQueue(ctx, req3)
-		store.AddToQueue(ctx, req4)
+
+		if _, err := store.AddToQueue(ctx, req3); err != nil {
+			t.Fatalf("Unexpected error adding third queue entry: %v", err)
+		}
+		if _, err := store.AddToQueue(ctx, req4); err != nil {
+			t.Fatalf("Unexpected error adding fourth queue entry: %v", err)
+		}
 		_, err := store.AddToQueue(ctx, req5)
 		if err != ErrQueueFull {
 			t.Errorf("Expected ErrQueueFull, got %v", err)

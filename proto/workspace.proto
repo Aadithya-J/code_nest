@@ -26,6 +26,15 @@ service WorkspaceService {
 
   // Lists all files in a project.
   rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+
+  // Deletes a file from a project.
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+
+  // Renames or moves a file within a project.
+  rpc RenameFile(RenameFileRequest) returns (FileResponse);
+
+  // Gets the directory tree structure for a project.
+  rpc GetFileTree(GetFileTreeRequest) returns (GetFileTreeResponse);
 }
 
 // The Session service definition for managing workspace lifecycles.
@@ -35,6 +44,9 @@ service SessionService {
 
   // Requests the release of an active workspace session.
   rpc ReleaseWorkspaceSession(ReleaseWorkspaceSessionRequest) returns (WorkspaceSessionResponse);
+
+  // Development only: Gets all active sessions for cleanup
+  rpc GetAllActiveSessions(GetAllActiveSessionsRequest) returns (GetAllActiveSessionsResponse);
 }
 
 // Message Definitions
@@ -122,6 +134,40 @@ message FileResponse {
   File file = 1;
 }
 
+message DeleteFileRequest {
+  string projectId = 1;
+  string path = 2;
+  string userId = 3; // For auth check
+}
+
+message DeleteFileResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message RenameFileRequest {
+  string projectId = 1;
+  string oldPath = 2;
+  string newPath = 3;
+  string userId = 4; // For auth check
+}
+
+message GetFileTreeRequest {
+  string projectId = 1;
+  string userId = 2; // For auth check
+}
+
+message FileTreeNode {
+  string name = 1;
+  string path = 2;
+  bool isDirectory = 3;
+  repeated FileTreeNode children = 4;
+}
+
+message GetFileTreeResponse {
+  repeated FileTreeNode nodes = 1;
+}
+
 // Session-related messages
 
 message CreateWorkspaceSessionRequest {
@@ -141,3 +187,19 @@ message WorkspaceSessionResponse {
   string status = 2;
   string message = 3;
 }
+
+message GetAllActiveSessionsRequest {
+  // Empty - returns all active sessions
+}
+
+message ActiveSession {
+  string sessionId = 1;
+  string projectId = 2;
+  string userId = 3;
+  string status = 4;
+}
+
+message GetAllActiveSessionsResponse {
+  repeated ActiveSession sessions = 1;
+}
+

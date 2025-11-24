@@ -27,18 +27,30 @@ import (
 	"gopkg.in/square/go-jose.v2"
 )
 
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+	Get(url string) (*http.Response, error)
+}
+
+type UserRepository interface {
+	Create(user *repository.User) error
+	FindByEmail(email string) (*repository.User, error)
+	UpdateGitHubInfo(userID uint, installationID int64, username string) error
+}
+
 type AuthService struct {
 	proto.UnimplementedAuthServiceServer
-	repo             *repository.UserRepo
+	repo             UserRepository
 	privateKey       *rsa.PrivateKey
 	jwks             *jose.JSONWebKeySet
 	oauthConf        *oauth2.Config
 	githubAppID      int64
 	githubAppSlug    string
 	githubPrivateKey []byte
+	httpClient       HTTPClient
 }
 
-func NewAuthService(repo *repository.UserRepo, oauthConf *oauth2.Config, cfg config.Config) (*AuthService, error) {
+func NewAuthService(repo UserRepository, oauthConf *oauth2.Config, cfg config.Config, httpClient HTTPClient) (*AuthService, error) {
 	privateKey, err := loadOrGenerateRSAKey()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load or generate rsa key: %w", err)
@@ -48,6 +60,11 @@ func NewAuthService(repo *repository.UserRepo, oauthConf *oauth2.Config, cfg con
 	jwks := &jose.JSONWebKeySet{Keys: []jose.JSONWebKey{jwk}}
 
 	pkBytes, _ := os.ReadFile(cfg.GitHub.PrivateKeyPath)
+	
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 30 * time.Second}
+	}
+
 	return &AuthService{
 		repo:             repo,
 		privateKey:       privateKey,
@@ -56,6 +73,7 @@ func NewAuthService(repo *repository.UserRepo, oauthConf *oauth2.Config, cfg con
 		githubAppID:      cfg.GitHub.AppID,
 		githubAppSlug:    cfg.GitHub.AppSlug,
 		githubPrivateKey: pkBytes,
+		httpClient:       httpClient,
 	}, nil
 }
 
@@ -303,8 +321,10 @@ func (s *AuthService) getInstallationAccessToken(installationID int64, appJWT st
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return "", 0, err
 	}
@@ -344,8 +364,9 @@ func (s *AuthService) getGitHubUsername(installationID int64) (string, error) {
 	req.Header.Set("Authorization", "Bearer "+appJWT)
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return "", err
 	}

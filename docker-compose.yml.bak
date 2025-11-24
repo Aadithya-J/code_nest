@@ -1,0 +1,156 @@
+# no "version" key — use Compose Spec
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: code_nest_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d code_nest_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - "5672:5672" # AMQP protocol
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app_network
+    healthcheck:
+      test: [ "CMD-SHELL", "rabbitmq-diagnostics -q ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    image: code_nest/api-gateway:local
+    container_name: api_gateway
+    depends_on:
+      - auth-service
+      - workspace-service
+    environment:
+      API_GATEWAY_PORT: 8080
+      AUTH_SERVICE_URL: "auth-service:50051"
+      WORKSPACE_SERVICE_URL: "workspace-service:50052"
+      AUTH_SERVICE_JWKS_URL: "http://auth-service:8081/.well-known/jwks.json"
+      RABBITMQ_URL: "amqp://user:password@rabbitmq:5672/"
+      APP_ENV: ${APP_ENV:-development}
+    ports:
+      - "8080:8080"
+    networks:
+      - app_network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    image: code_nest/auth-service:local
+    container_name: auth_service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/code_nest_db?sslmode=disable
+      - DB_SCHEMA=auth
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URL=${AUTH_GOOGLE_REDIRECT_URL}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_SLUG=${GITHUB_APP_SLUG}
+      - GITHUB_PRIVATE_KEY_PATH=${GITHUB_PRIVATE_KEY_PATH:-/app/github_app.pem}
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8080}
+    ports:
+      - "8081:8081"
+    volumes:
+      - auth_keys:/app/keys
+      - ./github_app.pem:/app/github_app.pem:ro
+    networks:
+      - app_network
+
+  workspace-service:
+    build:
+      context: .
+      dockerfile: services/workspace-service/Dockerfile
+    image: code_nest/workspace-service:local
+    container_name: workspace_service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://user:password@postgres:5432/code_nest_db?sslmode=disable"
+      RABBITMQ_URL: "amqp://user:password@rabbitmq:5672/"
+      DB_SCHEMA: "workspace"
+      WORKSPACE_SERVICE_PORT: "50052"
+    volumes:
+      - ~/.kube:/root/.kube:ro
+    networks:
+      - app_network
+      - k3d-codenest
+    extra_hosts:
+      - "k3d-codenest-server-0:172.18.0.2"
+      - "k3d-codenest-serverlb:172.18.0.3"
+    ports:
+      - "50052:50052"
+
+  runner-allocator:
+    build:
+      context: .
+      dockerfile: services/runner-allocator/Dockerfile
+    image: code_nest/runner-allocator:local
+    container_name: runner_allocator
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    environment:
+      - RABBITMQ_URL=amqp://user:password@rabbitmq:5672/
+      - WORKSPACE_IMAGE=workspace:latest
+      - KUBECONFIG_PATH=/app/kubeconfig.yaml
+      - MAX_SLOTS=3
+      - QUEUE_SIZE=10
+      - AUTH_SERVICE_URL=auth-service:50051
+    volumes:
+      - /tmp/k3s-config-docker.yaml:/app/kubeconfig.yaml:ro
+    networks:
+      - app_network
+      - k3d-codenest
+    extra_hosts:
+      - "k3d-codenest-server-0:172.18.0.2"
+      - "k3d-codenest-serverlb:172.18.0.3"
+
+networks:
+  app_network:
+    driver: bridge
+  k3d-codenest:
+    external: true
+
+volumes:
+  postgres_data:
+    driver: local
+  auth_keys:
+    driver: local
+  rabbitmq_data:
+    driver: local

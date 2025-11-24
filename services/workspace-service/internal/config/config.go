@@ -8,11 +8,12 @@ import (
 )
 
 type Config struct {
-	DatabaseURL    string
-	DBSchema       string
-	ServicePort    string
-	KafkaBrokerURL string
-	KafkaTopicCmd  string
+	DatabaseURL        string
+	DBSchema           string
+	ServicePort        string
+	RabbitMQURL        string
+	KubeconfigPath     string
+	WorkspaceNamespace string
 }
 
 func LoadConfig() *Config {
@@ -31,15 +32,9 @@ func LoadConfig() *Config {
 		log.Printf("WORKSPACE_SERVICE_PORT not set, using default %s", port)
 	}
 
-	kafkaBroker := os.Getenv("KAFKA_BROKER_URL")
-	if kafkaBroker == "" {
-		log.Fatalf("KAFKA_BROKER_URL env var required")
-	}
-
-	kafkaTopic := os.Getenv("KAFKA_TOPIC_CMD")
-	if kafkaTopic == "" {
-		kafkaTopic = "workspace.cmd"
-		log.Printf("KAFKA_TOPIC_CMD not set, using default %s", kafkaTopic)
+	rabbitMQURL := os.Getenv("RABBITMQ_URL")
+	if rabbitMQURL == "" {
+		log.Fatalf("RABBITMQ_URL env var required")
 	}
 
 	schema := os.Getenv("DB_SCHEMA")
@@ -47,11 +42,22 @@ func LoadConfig() *Config {
 		schema = "workspace"
 	}
 
+	kubeconfigPath := os.Getenv("KUBECONFIG")
+	if kubeconfigPath == "" {
+		kubeconfigPath = os.Getenv("HOME") + "/.kube/config"
+	}
+
+	workspaceNamespace := os.Getenv("WORKSPACE_NAMESPACE")
+	if workspaceNamespace == "" {
+		workspaceNamespace = "workspaces"
+	}
+
 	return &Config{
-		DatabaseURL:    dbURL,
-		DBSchema:       schema,
-		ServicePort:    port,
-		KafkaBrokerURL: kafkaBroker,
-		KafkaTopicCmd:  kafkaTopic,
+		DatabaseURL:        dbURL,
+		DBSchema:           schema,
+		ServicePort:        port,
+		RabbitMQURL:        rabbitMQURL,
+		KubeconfigPath:     kubeconfigPath,
+		WorkspaceNamespace: workspaceNamespace,
 	}
 }

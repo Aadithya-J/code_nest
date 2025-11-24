@@ -5,22 +5,22 @@ import (
 )
 
 type Config struct {
-	KafkaBrokerURL     string
-	KafkaTopicRequests string
-	KafkaTopicStatus   string
-	WorkspaceImage     string
-	MaxSlots           int
-	QueueSize          int
+	RabbitMQURL    string
+	WorkspaceImage string
+	KubeconfigPath string
+	MaxSlots       int
+	QueueSize      int
+	AuthServiceURL string
 }
 
 func LoadConfig() *Config {
 	return &Config{
-		KafkaBrokerURL:     getEnv("KAFKA_BROKER_URL", "redpanda:29092"),
-		KafkaTopicRequests: getEnv("KAFKA_TOPIC_REQUESTS", "workspace.requests"),
-		KafkaTopicStatus:   getEnv("KAFKA_TOPIC_STATUS", "workspace.status"),
-		WorkspaceImage:     getEnv("WORKSPACE_IMAGE", "ghcr.io/aadithya-j/code_nest/workspace:latest"),
-		MaxSlots:           3,
-		QueueSize:          10,
+		RabbitMQURL:    getEnv("RABBITMQ_URL", "amqp://user:password@rabbitmq:5672/"),
+		WorkspaceImage: getEnv("WORKSPACE_IMAGE", "ghcr.io/aadithya-j/code_nest/workspace:latest"),
+		KubeconfigPath: getEnv("KUBECONFIG_PATH", ""),
+		MaxSlots:       3,
+		QueueSize:      10,
+		AuthServiceURL: getEnv("AUTH_SERVICE_URL", "auth-service:50051"),
 	}
 }
 

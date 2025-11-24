@@ -28,3 +28,18 @@ func (r *FileRepository) ListFiles(projectID string) ([]models.File, error) {
 	err := r.DB.Where("project_id = ?", projectID).Find(&files).Error
 	return files, err
 }
+
+func (r *FileRepository) DeleteFile(projectID, path string) error {
+	return r.DB.Where("project_id = ? AND path = ?", projectID, path).Delete(&models.File{}).Error
+}
+
+func (r *FileRepository) RenameFile(projectID, oldPath, newPath string) error {
+	return r.DB.Model(&models.File{}).
+		Where("project_id = ? AND path = ?", projectID, oldPath).
+		Update("path", newPath).Error
+}
+
+func (r *FileRepository) DeleteFilesByPrefix(projectID, pathPrefix string) error {
+	// For deleting entire directories (all files under a path)
+	return r.DB.Where("project_id = ? AND path LIKE ?", projectID, pathPrefix+"%").Delete(&models.File{}).Error
+}

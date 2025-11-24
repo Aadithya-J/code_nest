@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -84,7 +85,21 @@ func TestKafkaConsumer_ProcessMessage(t *testing.T) {
 	})
 
 	t.Run("WorkspaceCreateRequested_NoSlots", func(t *testing.T) {
-		inMemoryStore.AssignSlot(ctx, "slot-2", "existing-project")
+		for {
+			slot, err := inMemoryStore.FindFreeSlot(ctx)
+			if err == store.ErrNoSlotsAvailable {
+				break
+			}
+			if err != nil {
+				t.Fatalf("Unexpected error locating slot: %v", err)
+			}
+			if slot == nil {
+				t.Fatal("FindFreeSlot returned nil without error")
+			}
+			if err := inMemoryStore.AssignSlot(ctx, slot.ID, fmt.Sprintf("existing-project-%s", slot.ID)); err != nil {
+				t.Fatalf("Failed to occupy slot %s: %v", slot.ID, err)
+			}
+		}
 
 		event := WorkspaceEvent{
 			EventType: "WORKSPACE_CREATE_REQUESTED",
@@ -101,7 +116,10 @@ func TestKafkaConsumer_ProcessMessage(t *testing.T) {
 			t.Fatalf("Expected no error for queuing, got: %v", err)
 		}
 
-		queueLength, _ := inMemoryStore.GetQueueLength(ctx)
+		queueLength, err := inMemoryStore.GetQueueLength(ctx)
+		if err != nil {
+			t.Fatalf("Failed to fetch queue length: %v", err)
+		}
 		if queueLength != 1 {
 			t.Errorf("Expected queue length 1, got %d", queueLength)
 		}

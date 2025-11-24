@@ -13,6 +13,8 @@ import (
 
 	"github.com/Aadithya-J/code_nest/proto"
 	"github.com/Aadithya-J/code_nest/services/api-gateway/internal/config"
+	"github.com/Aadithya-J/code_nest/services/api-gateway/internal/rabbitmq"
+	"github.com/Aadithya-J/code_nest/services/api-gateway/internal/websocket"
 	"github.com/MicahParks/keyfunc"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -39,6 +41,7 @@ func main() {
 	}
 	defer workspaceConn.Close()
 	workspaceClient := proto.NewWorkspaceServiceClient(workspaceConn)
+	sessionClient := proto.NewSessionServiceClient(workspaceConn)
 
 	jwksURL := cfg.AuthSvcJWKSUrl
 	options := keyfunc.Options{
@@ -65,8 +68,25 @@ func main() {
 		log.Printf("Waiting for auth service JWKS... retrying in %s", checkInterval)
 		time.Sleep(checkInterval)
 	}
-	authMiddleware := NewAuthMiddleware(jwks)
 
+	// Initialize WebSocket Hub
+	wsHub := websocket.NewHub()
+
+	// Initialize RabbitMQ Consumer
+	consumer, err := rabbitmq.NewConsumer(cfg.RabbitMQURL, wsHub)
+	if err != nil {
+		log.Fatalf("Failed to create RabbitMQ consumer: %v", err)
+	}
+	defer consumer.Close()
+
+	// Start consumer in background
+	go func() {
+		if err := consumer.Start(context.Background()); err != nil {
+			log.Printf("RabbitMQ consumer error: %v", err)
+		}
+	}()
+
+	authMiddleware := NewAuthMiddleware(jwks)
 
 	auth := r.Group("/auth")
 	{
@@ -76,6 +96,21 @@ func main() {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
+
+			// Validate required fields
+			if req.Email == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+				return
+			}
+			if req.Password == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "password is required"})
+				return
+			}
+			if len(req.Password) < 6 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 6 characters"})
+				return
+			}
+
 			resp, err := authClient.Signup(context.Background(), &req)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -89,6 +124,17 @@ func main() {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
+
+			// Validate required fields
+			if req.Email == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+				return
+			}
+			if req.Password == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "password is required"})
+				return
+			}
+
 			resp, err := authClient.Login(context.Background(), &req)
 			if err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -137,17 +183,17 @@ func main() {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "installation_id query param required"})
 				return
 			}
-			
+
 			// Convert installation_id to int64
 			var instID int64
 			if _, err := fmt.Sscanf(installationID, "%d", &instID); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid installation_id"})
 				return
 			}
-			
+
 			// Get authenticated user from JWT
 			userID := c.GetString("user_id")
-			
+
 			resp, err := authClient.HandleGitHubCallback(context.Background(), &proto.HandleGitHubCallbackRequest{
 				InstallationId: instID,
 				SetupAction:    setupAction,
@@ -164,15 +210,15 @@ func main() {
 		if os.Getenv("APP_ENV") == "development" || os.Getenv("APP_ENV") == "" {
 			auth.GET("/github/status", authMiddleware.Authorize, func(c *gin.Context) {
 				userID := c.GetString("user_id")
-				
+
 				// Check if user has GitHub linked by trying to get a token
 				tokenResp, err := authClient.GetGitHubAccessToken(context.Background(), &proto.GetGitHubAccessTokenRequest{
 					UserId: userID,
 				})
-				
+
 				githubLinked := false
 				var message string
-				
+
 				if err != nil {
 					// User doesn't have GitHub linked or token generation failed
 					message = "GitHub not linked or token unavailable"
@@ -181,7 +227,7 @@ func main() {
 					githubLinked = true
 					message = "GitHub linked successfully"
 				}
-				
+
 				c.JSON(http.StatusOK, gin.H{
 					"user_id":       userID,
 					"github_linked": githubLinked,
@@ -292,11 +338,109 @@ func main() {
 			}
 			c.JSON(http.StatusOK, resp)
 		})
+
+		// Session endpoints
+		workspace.POST("/sessions", func(c *gin.Context) {
+			var req proto.CreateWorkspaceSessionRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			req.UserId = c.GetString("user_id")
+			resp, err := sessionClient.CreateWorkspaceSession(context.Background(), &req)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusAccepted, resp)
+		})
+
+		workspace.DELETE("/sessions/:id", func(c *gin.Context) {
+			projectID := c.Query("projectId")
+			if projectID == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "projectId query parameter required"})
+				return
+			}
+			req := proto.ReleaseWorkspaceSessionRequest{
+				SessionId: c.Param("id"),
+				ProjectId: projectID,
+				UserId:    c.GetString("user_id"),
+			}
+			resp, err := sessionClient.ReleaseWorkspaceSession(context.Background(), &req)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, resp)
+		})
+
+		// RESTful file routes under projects
+		workspace.GET("/projects/:projectId/files/tree", func(c *gin.Context) {
+			projectID := c.Param("projectId")
+			req := proto.GetFileTreeRequest{
+				ProjectId: projectID,
+				UserId:    c.GetString("user_id"),
+			}
+			resp, err := workspaceClient.GetFileTree(context.Background(), &req)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, resp)
+		})
 	}
 
 	r.GET("/protected", authMiddleware.Authorize, func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "Hello " + c.GetString("user_id")})
 	})
+
+	// WebSocket endpoint for status updates
+	r.GET("/ws/status", func(c *gin.Context) {
+		wsHub.HandleConnection(c)
+	})
+
+	// Development-only cleanup endpoint
+	if os.Getenv("APP_ENV") == "development" || os.Getenv("APP_ENV") == "" {
+		r.POST("/dev/cleanup", func(c *gin.Context) {
+			log.Println("🧹 [DEV] Cleaning up all workspace sessions...")
+			
+			// Get all active sessions
+			sessionsResp, err := sessionClient.GetAllActiveSessions(context.Background(), &proto.GetAllActiveSessionsRequest{})
+			if err != nil {
+				log.Printf("Failed to get active sessions: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to get active sessions",
+				})
+				return
+			}
+
+			released := 0
+			failed := 0
+
+			// Release each session
+			for _, session := range sessionsResp.Sessions {
+				_, err := sessionClient.ReleaseWorkspaceSession(context.Background(), &proto.ReleaseWorkspaceSessionRequest{
+					SessionId: session.SessionId,
+					ProjectId: session.ProjectId,
+					UserId:    session.UserId,
+				})
+				if err != nil {
+					log.Printf("Failed to release session %s: %v", session.SessionId, err)
+					failed++
+				} else {
+					released++
+				}
+			}
+
+			log.Printf("✅ [DEV] Cleanup complete: %d released, %d failed", released, failed)
+			c.JSON(http.StatusOK, gin.H{
+				"message":  "Cleanup complete",
+				"released": released,
+				"failed":   failed,
+			})
+		})
+	}
+
 
 	log.Printf("Starting API Gateway on :%s", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {
@@ -358,4 +502,3 @@ func generateSecureState() string {
 	rand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
 }
-

@@ -22,8 +22,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /workspace-service ./cmd/workspace-service
 
-FROM gcr.io/distroless/static-debian11
+FROM alpine:latest
 COPY --from=builder /workspace-service /workspace-service
+RUN apk --no-cache add ca-certificates
 
 EXPOSE 50052
 ENTRYPOINT ["/workspace-service"]

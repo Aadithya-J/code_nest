@@ -28,9 +28,30 @@ workspace:
 	go build -o bin/workspace-service services/workspace-service/cmd/workspace-service/main.go
 
 test:
-	@echo "Running tests..."
-	# add test commands here
-	echo "Tests complete"
+	@echo "Running all E2E tests..."
+	go test ./tests/... -v
+
+test-auth:
+	@echo "Running authentication tests..."
+	go test ./tests/auth -v
+
+test-workspace:
+	@echo "Running workspace tests..."
+	go test ./tests/workspace -v
+
+test-integration:
+	@echo "Running integration tests..."
+	go test ./tests/integration -v
+
+test-coverage:
+	@echo "Running tests with coverage..."
+	go test ./tests/... -v -coverprofile=coverage.out
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+test-legacy:
+	@echo "Running legacy monolithic tests..."
+	go test ./tests -v
 
 testrun:
 	@echo "Running all services in test mode..."

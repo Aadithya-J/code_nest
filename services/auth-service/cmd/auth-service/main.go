@@ -56,7 +56,7 @@ func main() {
 		Scopes:       []string{"openid", "email", "profile"},
 		Endpoint:     google.Endpoint,
 	}
-		authSvc, err := service.NewAuthService(repo, oauthConf, cfg)
+	authSvc, err := service.NewAuthService(repo, oauthConf, cfg, nil)
 	if err != nil {
 		log.Fatalf("failed to create auth service: %v", err)
 	}

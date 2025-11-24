@@ -12,6 +12,7 @@ type Config struct {
 	WorkspaceSvcUrl string
 	Port            string
 	AuthSvcJWKSUrl  string
+	RabbitMQURL     string
 }
 
 func LoadConfig() *Config {
@@ -40,10 +41,16 @@ func LoadConfig() *Config {
 		log.Printf("API_GATEWAY_PORT not set, using default %s", port)
 	}
 
+	rabbitMQURL := os.Getenv("RABBITMQ_URL")
+	if rabbitMQURL == "" {
+		log.Fatalf("RABBITMQ_URL env var required")
+	}
+
 	return &Config{
 		AuthSvcUrl:      authSvcUrl,
 		WorkspaceSvcUrl: workspaceSvcUrl,
 		Port:            port,
 		AuthSvcJWKSUrl:  authSvcJWKSUrl,
+		RabbitMQURL:     rabbitMQURL,
 	}
 }

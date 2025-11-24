@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	ErrQueueFull      = errors.New("queue is full")
+	ErrQueueFull        = errors.New("queue is full")
 	ErrNoSlotsAvailable = errors.New("no slots available")
-	ErrNotFound       = errors.New("not found")
+	ErrNotFound         = errors.New("not found")
 )
 
 // Slot represents a workspace slot.
@@ -25,11 +25,13 @@ type Slot struct {
 
 // QueuedRequest represents a complete workspace request waiting in queue
 type QueuedRequest struct {
-	ProjectID  string    `json:"project_id"`
-	UserID     string    `json:"user_id"`
-	GitRepoURL string    `json:"git_repo_url"`
-	SessionID  string    `json:"session_id"`
-	QueuedAt   time.Time `json:"queued_at"`
+	ProjectID    string    `json:"project_id"`
+	UserID       string    `json:"user_id"`
+	GitRepoURL   string    `json:"git_repo_url"`
+	SessionID    string    `json:"session_id"`
+	GitHubToken  string    `json:"github_token"`
+	TargetBranch string    `json:"target_branch"`
+	QueuedAt     time.Time `json:"queued_at"`
 }
 
 // Store defines the interface for managing workspace slots and queue.
@@ -163,7 +165,7 @@ func (s *InMemoryStore) GetNextFromQueue(ctx context.Context) (*QueuedRequest, e
 func (s *InMemoryStore) GetAllSlots(ctx context.Context) ([]*Slot, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	slots := make([]*Slot, 0, len(s.slots))
 	for _, slot := range s.slots {
 		slots = append(slots, slot)
@@ -175,12 +177,12 @@ func (s *InMemoryStore) GetAllSlots(ctx context.Context) ([]*Slot, error) {
 func (s *InMemoryStore) UpdateSlotStatus(ctx context.Context, slotID, status string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	slot, exists := s.slots[slotID]
 	if !exists {
 		return ErrNotFound
 	}
-	
+
 	slot.Status = status
 	return nil
 }
@@ -189,12 +191,12 @@ func (s *InMemoryStore) UpdateSlotStatus(ctx context.Context, slotID, status str
 func (s *InMemoryStore) UpdateSlotActivity(ctx context.Context, slotID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	slot, exists := s.slots[slotID]
 	if !exists {
 		return ErrNotFound
 	}
-	
+
 	slot.LastActivity = time.Now()
 	return nil
 }

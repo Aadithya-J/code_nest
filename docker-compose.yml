@@ -14,28 +14,29 @@ services:
     networks:
       - app_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d code_nest_db"]
+      test: [ "CMD-SHELL", "pg_isready -U user -d code_nest_db" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  redpanda:
-    image: redpandadata/redpanda:v23.1.2
-    container_name: redpanda
-    command:
-      - redpanda
-      - start
-      - --smp 1
-      - --overprovisioned
-      - --memory 512MiB
-      - --node-id 0
-      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
-      - --advertise-kafka-addr PLAINTEXT://redpanda:29092,OUTSIDE://localhost:9092
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
     ports:
-      - "9092:9092"
-      - "29092:29092"
+      - "5672:5672" # AMQP protocol
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - app_network
+    healthcheck:
+      test: [ "CMD-SHELL", "rabbitmq-diagnostics -q ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api-gateway:
     build:
@@ -51,6 +52,7 @@ services:
       AUTH_SERVICE_URL: "auth-service:50051"
       WORKSPACE_SERVICE_URL: "workspace-service:50052"
       AUTH_SERVICE_JWKS_URL: "http://auth-service:8081/.well-known/jwks.json"
+      RABBITMQ_URL: "amqp://user:password@rabbitmq:5672/"
       APP_ENV: ${APP_ENV:-development}
     ports:
       - "8080:8080"
@@ -64,7 +66,8 @@ services:
     image: code_nest/auth-service:local
     container_name: auth_service
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://user:password@postgres:5432/code_nest_db?sslmode=disable
       - DB_SCHEMA=auth
@@ -88,34 +91,67 @@ services:
     build:
       context: .
       dockerfile: services/workspace-service/Dockerfile
-      args:
-        - GOPROXY=https://proxy.golang.org,direct
     image: code_nest/workspace-service:local
     container_name: workspace_service
     depends_on:
-      - postgres
-      - redpanda
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
-      DB_HOST: postgres
-      DB_USER: user
-      DB_PASSWORD: password
-      DB_NAME: code_nest_db
-      DB_PORT: 5432
-      DB_SCHEMA: workspace
       DATABASE_URL: "postgresql://user:password@postgres:5432/code_nest_db?sslmode=disable"
-      KAFKA_BROKER_URL: "redpanda:29092"
-      KAFKA_TOPIC_CMD: workspace.cmd
-    ports:
-      - "50052:50052"
+      RABBITMQ_URL: "amqp://user:password@rabbitmq:5672/"
+      DB_SCHEMA: "workspace"
+      WORKSPACE_SERVICE_PORT: "50052"
+      KUBECONFIG: "/app/kubeconfig.yaml"
+    volumes:
+      - /tmp/k3s-config-docker.yaml:/app/kubeconfig.yaml:ro
     networks:
       - app_network
+      - k3d-codenest
+    extra_hosts:
+      - "k3d-codenest-server-0:172.18.0.3"
+      - "k3d-codenest-serverlb:172.18.0.6"
+    ports:
+      - "50052:50052"
+
+  runner-allocator:
+    build:
+      context: .
+      dockerfile: services/runner-allocator/Dockerfile
+    image: code_nest/runner-allocator:local
+    container_name: runner_allocator
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    environment:
+      - RABBITMQ_URL=amqp://user:password@rabbitmq:5672/
+      - WORKSPACE_IMAGE=workspace:latest
+      - KUBECONFIG_PATH=/app/kubeconfig.yaml
+      - MAX_SLOTS=3
+      - QUEUE_SIZE=10
+      - AUTH_SERVICE_URL=auth-service:50051
+    volumes:
+      - /tmp/k3s-config-docker.yaml:/app/kubeconfig.yaml:ro
+    networks:
+      - app_network
+      - k3d-codenest
+    extra_hosts:
+      - "k3d-codenest-server-0:172.18.0.3"
+      - "k3d-codenest-serverlb:172.18.0.6"
 
 networks:
   app_network:
     driver: bridge
+  k3d-codenest:
+    external: true
 
 volumes:
   postgres_data:
     driver: local
   auth_keys:
+    driver: local
+  rabbitmq_data:
     driver: local

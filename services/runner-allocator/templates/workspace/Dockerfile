@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
+    inotify-tools \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # ---------- Install Node.js via nvm ----------
@@ -48,7 +50,7 @@ WORKDIR /workspace
 RUN chown -R node:node /workspace
 
 # Copy entrypoint script and set permissions (as root)
-COPY services/runner-allocator/templates/workspace/entrypoint.sh /home/node/entrypoint.sh
+COPY entrypoint.sh /home/node/entrypoint.sh
 RUN chmod +x /home/node/entrypoint.sh && chown node:node /home/node/entrypoint.sh
 
 # Switch to non-root user

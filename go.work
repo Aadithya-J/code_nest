@@ -4,6 +4,7 @@ use (
 	./proto
 	./services/api-gateway
 	./services/auth-service
+	./services/runner-allocator
 	./services/workspace-service
 	./tests
 )

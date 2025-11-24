@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Aadithya-J/code_nest/services/runner-allocator/internal/models"
 	"github.com/Aadithya-J/code_nest/services/runner-allocator/internal/store"
 	"github.com/segmentio/kafka-go"
 )
@@ -20,7 +21,7 @@ type Provisioner interface {
 // SlotProvisioner extends Provisioner with slot-based operations
 type SlotProvisioner interface {
 	Provisioner
-	AssignSlotToProject(ctx context.Context, slotID, projectID, gitRepoURL string) error
+	AssignSlotToProject(ctx context.Context, slotID string, assignment *models.SlotAssignment) error
 	ReleaseSlot(ctx context.Context, slotID string) error
 }
 
@@ -152,7 +153,15 @@ func (c *KafkaConsumer) handleCreateRequest(ctx context.Context, event *Workspac
 	// Use SlotProvisioner if available (k3s), otherwise fallback to regular Provisioner (Docker)
 	if slotProv, ok := c.provisioner.(SlotProvisioner); ok {
 		// k3s slot-based provisioning
-		if err := slotProv.AssignSlotToProject(ctx, slot.ID, event.Payload.ProjectID, event.Payload.GitRepoURL); err != nil {
+		assignment := &models.SlotAssignment{
+			ProjectID:    event.Payload.ProjectID,
+			SessionID:    event.Payload.SessionID,
+			GitRepoURL:   event.Payload.GitRepoURL,
+			GitHubToken:  "", // TODO: Add to payload
+			RabbitMQURL:  "", // TODO: Add rabbitmqURL
+			TargetBranch: "main",
+		}
+		if err := slotProv.AssignSlotToProject(ctx, slot.ID, assignment); err != nil {
 			c.store.ReleaseSlot(ctx, event.Payload.ProjectID)
 			return c.publishStatusEvent(ctx, event.Payload.ProjectID, event.Payload.SessionID, "FAILED", err.Error())
 		}
@@ -170,24 +179,24 @@ func (c *KafkaConsumer) handleReleaseRequest(ctx context.Context, event *Workspa
 	if c.provisioner != nil {
 		c.provisioner.DeprovisionWorkspace(ctx, event.Payload.ProjectID)
 	}
-	
+
 	if err := c.store.ReleaseSlot(ctx, event.Payload.ProjectID); err != nil {
 		return fmt.Errorf("failed to release slot: %w", err)
 	}
-	
+
 	c.processQueue(ctx)
-	
+
 	return nil
 }
 
 func (c *KafkaConsumer) handlePauseRequest(ctx context.Context, event *WorkspaceEvent) error {
 	c.publishStatusEvent(ctx, event.Payload.ProjectID, event.Payload.SessionID, "PAUSING", "Pausing workspace as requested")
-	
+
 	slots, err := c.store.GetAllSlots(ctx)
 	if err != nil {
 		return c.publishStatusEvent(ctx, event.Payload.ProjectID, event.Payload.SessionID, "FAILED", "Failed to find workspace slot")
 	}
-	
+
 	var targetSlot *store.Slot
 	for _, slot := range slots {
 		if slot.ProjectID == event.Payload.ProjectID {
@@ -195,23 +204,23 @@ func (c *KafkaConsumer) handlePauseRequest(ctx context.Context, event *Workspace
 			break
 		}
 	}
-	
+
 	if targetSlot == nil {
 		return c.publishStatusEvent(ctx, event.Payload.ProjectID, event.Payload.SessionID, "FAILED", "Workspace not found")
 	}
-	
+
 	if slotProv, ok := c.provisioner.(SlotProvisioner); ok {
 		if err := slotProv.ReleaseSlot(ctx, targetSlot.ID); err != nil {
 			return c.publishStatusEvent(ctx, event.Payload.ProjectID, event.Payload.SessionID, "FAILED", fmt.Sprintf("Failed to pause workspace: %v", err))
 		}
 	}
-	
+
 	if err := c.store.ReleaseSlot(ctx, event.Payload.ProjectID); err != nil {
 		return c.publishStatusEvent(ctx, event.Payload.ProjectID, event.Payload.SessionID, "FAILED", fmt.Sprintf("Failed to release slot: %v", err))
 	}
-	
+
 	c.processQueue(ctx)
-	
+
 	return c.publishStatusEvent(ctx, event.Payload.ProjectID, event.Payload.SessionID, "PAUSED", "Workspace paused successfully")
 }
 func (c *KafkaConsumer) processQueue(ctx context.Context) {

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Aadithya-J/code_nest/services/runner-allocator/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,8 +117,24 @@ func (k *KubernetesProvisioner) CreateSlotPod(ctx context.Context, slotID string
 							Value: "", // Will be updated when slot is assigned
 						},
 						{
+							Name:  "SESSION_ID",
+							Value: "", // Will be updated when slot is assigned
+						},
+						{
 							Name:  "GIT_REPO_URL",
 							Value: "", // Will be updated when slot is assigned
+						},
+						{
+							Name:  "GITHUB_TOKEN",
+							Value: "", // Will be updated when slot is assigned
+						},
+						{
+							Name:  "RABBITMQ_URL",
+							Value: "", // Will be updated when slot is assigned
+						},
+						{
+							Name:  "TARGET_BRANCH",
+							Value: "main", // Default branch to merge into
 						},
 					},
 					VolumeMounts: []corev1.VolumeMount{
@@ -132,7 +149,7 @@ func (k *KubernetesProvisioner) CreateSlotPod(ctx context.Context, slotID string
 							corev1.ResourceMemory: resource.MustParse("256Mi"), // 256 MB RAM
 						},
 						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("100m"), // 0.1 CPU cores
+							corev1.ResourceCPU:    resource.MustParse("100m"),  // 0.1 CPU cores
 							corev1.ResourceMemory: resource.MustParse("128Mi"), // 128 MB RAM
 						},
 					},
@@ -277,56 +294,62 @@ func (k *KubernetesProvisioner) waitForPodReady(ctx context.Context, podName str
 // InitializeSlots creates the 3 fixed workspace slots at startup
 func (k *KubernetesProvisioner) InitializeSlots(ctx context.Context) error {
 	log.Println("Initializing 3 fixed workspace slots...")
-	
+
 	for i := 1; i <= 3; i++ {
 		slotID := fmt.Sprintf("%d", i)
 		podName := fmt.Sprintf("workspace-slot-%s", slotID)
-		
+
 		// Check if pod already exists
 		_, err := k.clientset.CoreV1().Pods(k.namespace).Get(ctx, podName, metav1.GetOptions{})
 		if err == nil {
 			log.Printf("Slot %s already exists, skipping creation", slotID)
 			continue
 		}
-		
+
 		// Create the slot pod
 		if err := k.CreateSlotPod(ctx, slotID); err != nil {
 			return fmt.Errorf("failed to create slot %s: %w", slotID, err)
 		}
-		
+
 		log.Printf("✅ Created slot %s", slotID)
 	}
-	
+
 	log.Println("All workspace slots initialized successfully")
 	return nil
 }
 
 // AssignSlotToProject updates a slot pod with new project details
-func (k *KubernetesProvisioner) AssignSlotToProject(ctx context.Context, slotID, projectID, gitRepoURL string) error {
+func (k *KubernetesProvisioner) AssignSlotToProject(ctx context.Context, slotID string, assignment *models.SlotAssignment) error {
 	podName := fmt.Sprintf("workspace-slot-%s", slotID)
-	
+
 	// Get the pod
 	pod, err := k.clientset.CoreV1().Pods(k.namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get slot pod: %w", err)
 	}
-	
+
 	// Update environment variables
 	for i := range pod.Spec.Containers[0].Env {
 		switch pod.Spec.Containers[0].Env[i].Name {
 		case "PROJECT_ID":
-			pod.Spec.Containers[0].Env[i].Value = projectID
+			pod.Spec.Containers[0].Env[i].Value = assignment.ProjectID
+		case "SESSION_ID":
+			pod.Spec.Containers[0].Env[i].Value = assignment.SessionID
 		case "GIT_REPO_URL":
-			pod.Spec.Containers[0].Env[i].Value = gitRepoURL
+			pod.Spec.Containers[0].Env[i].Value = assignment.GitRepoURL
+		case "GITHUB_TOKEN":
+			pod.Spec.Containers[0].Env[i].Value = assignment.GitHubToken
+		case "RABBITMQ_URL":
+			pod.Spec.Containers[0].Env[i].Value = assignment.RabbitMQURL
+		case "TARGET_BRANCH":
+			pod.Spec.Containers[0].Env[i].Value = assignment.TargetBranch
 		}
-	}
-	
-	// Delete the old pod to restart with new env vars
+	} // Delete the old pod to restart with new env vars
 	err = k.clientset.CoreV1().Pods(k.namespace).Delete(ctx, podName, metav1.DeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to delete pod for restart: %w", err)
 	}
-	
+
 	// Wait for pod to be fully deleted
 	for {
 		_, err := k.clientset.CoreV1().Pods(k.namespace).Get(ctx, podName, metav1.GetOptions{})
@@ -336,7 +359,7 @@ func (k *KubernetesProvisioner) AssignSlotToProject(ctx context.Context, slotID,
 		}
 		time.Sleep(1 * time.Second)
 	}
-	
+
 	// Recreate the pod with updated env vars
 	pod.ResourceVersion = ""
 	pod.UID = ""
@@ -344,21 +367,36 @@ func (k *KubernetesProvisioner) AssignSlotToProject(ctx context.Context, slotID,
 	if err != nil {
 		return fmt.Errorf("failed to recreate pod: %w", err)
 	}
+
+	log.Printf("Assigned slot %s to project %s, waiting for pod to be ready...", slotID, assignment.ProjectID)
 	
-	log.Printf("Assigned slot %s to project %s", slotID, projectID)
+	// Wait for the pod to be ready before returning
+	if err := k.waitForPodReady(ctx, podName, 2*time.Minute); err != nil {
+		return fmt.Errorf("pod failed to become ready: %w", err)
+	}
+	
+	log.Printf("✅ Slot %s is ready for project %s", slotID, assignment.ProjectID)
 	return nil
 }
 
 // ReleaseSlot cleans a slot and makes it available for reuse
 func (k *KubernetesProvisioner) ReleaseSlot(ctx context.Context, slotID string) error {
 	// Reset the slot by restarting with empty env vars
-	return k.AssignSlotToProject(ctx, slotID, "", "")
+	emptyAssignment := &models.SlotAssignment{
+		ProjectID:    "",
+		SessionID:    "",
+		GitRepoURL:   "",
+		GitHubToken:  "",
+		RabbitMQURL:  "",
+		TargetBranch: "main",
+	}
+	return k.AssignSlotToProject(ctx, slotID, emptyAssignment)
 }
 
 // GetWorkspaceEndpoint returns the service endpoint for a workspace slot
 func (k *KubernetesProvisioner) GetWorkspaceEndpoint(ctx context.Context, slotID string) (string, error) {
 	serviceName := fmt.Sprintf("workspace-slot-%s-svc", slotID)
-	
+
 	service, err := k.clientset.CoreV1().Services(k.namespace).Get(ctx, serviceName, metav1.GetOptions{})
 	if err != nil {
 		return "", fmt.Errorf("failed to get service: %w", err)

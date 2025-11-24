@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"net/http"
 
-	"github.com/Aadithya-J/code_nest/services/auth-service/internal/service"
 	"github.com/Aadithya-J/code_nest/proto"
+	"github.com/Aadithya-J/code_nest/services/auth-service/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,6 +29,21 @@ func (h *Handler) Signup(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Additional validation
+	if req.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+		return
+	}
+	if req.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password is required"})
+		return
+	}
+	if len(req.Password) < 6 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 6 characters"})
+		return
+	}
+
 	signupReq := &proto.SignupRequest{
 		Email:    req.Email,
 		Password: req.Password,
@@ -50,6 +65,17 @@ func (h *Handler) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Additional validation
+	if req.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+		return
+	}
+	if req.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password is required"})
+		return
+	}
+
 	loginReq := &proto.LoginRequest{
 		Email:    req.Email,
 		Password: req.Password,

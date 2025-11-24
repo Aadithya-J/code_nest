@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.3
-// source: proto/workspace.proto
+// source: workspace.proto
 
 package proto
 
@@ -26,6 +26,9 @@ const (
 	WorkspaceService_SaveFile_FullMethodName      = "/proto.WorkspaceService/SaveFile"
 	WorkspaceService_GetFile_FullMethodName       = "/proto.WorkspaceService/GetFile"
 	WorkspaceService_ListFiles_FullMethodName     = "/proto.WorkspaceService/ListFiles"
+	WorkspaceService_DeleteFile_FullMethodName    = "/proto.WorkspaceService/DeleteFile"
+	WorkspaceService_RenameFile_FullMethodName    = "/proto.WorkspaceService/RenameFile"
+	WorkspaceService_GetFileTree_FullMethodName   = "/proto.WorkspaceService/GetFileTree"
 )
 
 // WorkspaceServiceClient is the client API for WorkspaceService service.
@@ -48,6 +51,12 @@ type WorkspaceServiceClient interface {
 	GetFile(ctx context.Context, in *GetFileRequest, opts ...grpc.CallOption) (*FileResponse, error)
 	// Lists all files in a project.
 	ListFiles(ctx context.Context, in *ListFilesRequest, opts ...grpc.CallOption) (*ListFilesResponse, error)
+	// Deletes a file from a project.
+	DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*DeleteFileResponse, error)
+	// Renames or moves a file within a project.
+	RenameFile(ctx context.Context, in *RenameFileRequest, opts ...grpc.CallOption) (*FileResponse, error)
+	// Gets the directory tree structure for a project.
+	GetFileTree(ctx context.Context, in *GetFileTreeRequest, opts ...grpc.CallOption) (*GetFileTreeResponse, error)
 }
 
 type workspaceServiceClient struct {
@@ -128,6 +137,36 @@ func (c *workspaceServiceClient) ListFiles(ctx context.Context, in *ListFilesReq
 	return out, nil
 }
 
+func (c *workspaceServiceClient) DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*DeleteFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteFileResponse)
+	err := c.cc.Invoke(ctx, WorkspaceService_DeleteFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workspaceServiceClient) RenameFile(ctx context.Context, in *RenameFileRequest, opts ...grpc.CallOption) (*FileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FileResponse)
+	err := c.cc.Invoke(ctx, WorkspaceService_RenameFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workspaceServiceClient) GetFileTree(ctx context.Context, in *GetFileTreeRequest, opts ...grpc.CallOption) (*GetFileTreeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFileTreeResponse)
+	err := c.cc.Invoke(ctx, WorkspaceService_GetFileTree_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkspaceServiceServer is the server API for WorkspaceService service.
 // All implementations must embed UnimplementedWorkspaceServiceServer
 // for forward compatibility.
@@ -148,6 +187,12 @@ type WorkspaceServiceServer interface {
 	GetFile(context.Context, *GetFileRequest) (*FileResponse, error)
 	// Lists all files in a project.
 	ListFiles(context.Context, *ListFilesRequest) (*ListFilesResponse, error)
+	// Deletes a file from a project.
+	DeleteFile(context.Context, *DeleteFileRequest) (*DeleteFileResponse, error)
+	// Renames or moves a file within a project.
+	RenameFile(context.Context, *RenameFileRequest) (*FileResponse, error)
+	// Gets the directory tree structure for a project.
+	GetFileTree(context.Context, *GetFileTreeRequest) (*GetFileTreeResponse, error)
 	mustEmbedUnimplementedWorkspaceServiceServer()
 }
 
@@ -178,6 +223,15 @@ func (UnimplementedWorkspaceServiceServer) GetFile(context.Context, *GetFileRequ
 }
 func (UnimplementedWorkspaceServiceServer) ListFiles(context.Context, *ListFilesRequest) (*ListFilesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListFiles not implemented")
+}
+func (UnimplementedWorkspaceServiceServer) DeleteFile(context.Context, *DeleteFileRequest) (*DeleteFileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteFile not implemented")
+}
+func (UnimplementedWorkspaceServiceServer) RenameFile(context.Context, *RenameFileRequest) (*FileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RenameFile not implemented")
+}
+func (UnimplementedWorkspaceServiceServer) GetFileTree(context.Context, *GetFileTreeRequest) (*GetFileTreeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFileTree not implemented")
 }
 func (UnimplementedWorkspaceServiceServer) mustEmbedUnimplementedWorkspaceServiceServer() {}
 func (UnimplementedWorkspaceServiceServer) testEmbeddedByValue()                          {}
@@ -326,6 +380,60 @@ func _WorkspaceService_ListFiles_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkspaceService_DeleteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkspaceServiceServer).DeleteFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkspaceService_DeleteFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkspaceServiceServer).DeleteFile(ctx, req.(*DeleteFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkspaceService_RenameFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenameFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkspaceServiceServer).RenameFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkspaceService_RenameFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkspaceServiceServer).RenameFile(ctx, req.(*RenameFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkspaceService_GetFileTree_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFileTreeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkspaceServiceServer).GetFileTree(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkspaceService_GetFileTree_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkspaceServiceServer).GetFileTree(ctx, req.(*GetFileTreeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkspaceService_ServiceDesc is the grpc.ServiceDesc for WorkspaceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -361,14 +469,27 @@ var WorkspaceService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ListFiles",
 			Handler:    _WorkspaceService_ListFiles_Handler,
 		},
+		{
+			MethodName: "DeleteFile",
+			Handler:    _WorkspaceService_DeleteFile_Handler,
+		},
+		{
+			MethodName: "RenameFile",
+			Handler:    _WorkspaceService_RenameFile_Handler,
+		},
+		{
+			MethodName: "GetFileTree",
+			Handler:    _WorkspaceService_GetFileTree_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/workspace.proto",
+	Metadata: "workspace.proto",
 }
 
 const (
 	SessionService_CreateWorkspaceSession_FullMethodName  = "/proto.SessionService/CreateWorkspaceSession"
 	SessionService_ReleaseWorkspaceSession_FullMethodName = "/proto.SessionService/ReleaseWorkspaceSession"
+	SessionService_GetAllActiveSessions_FullMethodName    = "/proto.SessionService/GetAllActiveSessions"
 )
 
 // SessionServiceClient is the client API for SessionService service.
@@ -381,6 +502,8 @@ type SessionServiceClient interface {
 	CreateWorkspaceSession(ctx context.Context, in *CreateWorkspaceSessionRequest, opts ...grpc.CallOption) (*WorkspaceSessionResponse, error)
 	// Requests the release of an active workspace session.
 	ReleaseWorkspaceSession(ctx context.Context, in *ReleaseWorkspaceSessionRequest, opts ...grpc.CallOption) (*WorkspaceSessionResponse, error)
+	// Development only: Gets all active sessions for cleanup
+	GetAllActiveSessions(ctx context.Context, in *GetAllActiveSessionsRequest, opts ...grpc.CallOption) (*GetAllActiveSessionsResponse, error)
 }
 
 type sessionServiceClient struct {
@@ -411,6 +534,16 @@ func (c *sessionServiceClient) ReleaseWorkspaceSession(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *sessionServiceClient) GetAllActiveSessions(ctx context.Context, in *GetAllActiveSessionsRequest, opts ...grpc.CallOption) (*GetAllActiveSessionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllActiveSessionsResponse)
+	err := c.cc.Invoke(ctx, SessionService_GetAllActiveSessions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SessionServiceServer is the server API for SessionService service.
 // All implementations must embed UnimplementedSessionServiceServer
 // for forward compatibility.
@@ -421,6 +554,8 @@ type SessionServiceServer interface {
 	CreateWorkspaceSession(context.Context, *CreateWorkspaceSessionRequest) (*WorkspaceSessionResponse, error)
 	// Requests the release of an active workspace session.
 	ReleaseWorkspaceSession(context.Context, *ReleaseWorkspaceSessionRequest) (*WorkspaceSessionResponse, error)
+	// Development only: Gets all active sessions for cleanup
+	GetAllActiveSessions(context.Context, *GetAllActiveSessionsRequest) (*GetAllActiveSessionsResponse, error)
 	mustEmbedUnimplementedSessionServiceServer()
 }
 
@@ -436,6 +571,9 @@ func (UnimplementedSessionServiceServer) CreateWorkspaceSession(context.Context,
 }
 func (UnimplementedSessionServiceServer) ReleaseWorkspaceSession(context.Context, *ReleaseWorkspaceSessionRequest) (*WorkspaceSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReleaseWorkspaceSession not implemented")
+}
+func (UnimplementedSessionServiceServer) GetAllActiveSessions(context.Context, *GetAllActiveSessionsRequest) (*GetAllActiveSessionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllActiveSessions not implemented")
 }
 func (UnimplementedSessionServiceServer) mustEmbedUnimplementedSessionServiceServer() {}
 func (UnimplementedSessionServiceServer) testEmbeddedByValue()                        {}
@@ -494,6 +632,24 @@ func _SessionService_ReleaseWorkspaceSession_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionService_GetAllActiveSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllActiveSessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionServiceServer).GetAllActiveSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionService_GetAllActiveSessions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionServiceServer).GetAllActiveSessions(ctx, req.(*GetAllActiveSessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SessionService_ServiceDesc is the grpc.ServiceDesc for SessionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -509,7 +665,11 @@ var SessionService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ReleaseWorkspaceSession",
 			Handler:    _SessionService_ReleaseWorkspaceSession_Handler,
 		},
+		{
+			MethodName: "GetAllActiveSessions",
+			Handler:    _SessionService_GetAllActiveSessions_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/workspace.proto",
+	Metadata: "workspace.proto",
 }

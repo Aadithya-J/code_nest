@@ -7,10 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Aadithya-J/code_nest/services/runner-allocator/internal/auth"
 	"github.com/Aadithya-J/code_nest/services/runner-allocator/internal/config"
-	"github.com/Aadithya-J/code_nest/services/runner-allocator/internal/consumer"
 	"github.com/Aadithya-J/code_nest/services/runner-allocator/internal/lifecycle"
 	"github.com/Aadithya-J/code_nest/services/runner-allocator/internal/provisioner"
+	"github.com/Aadithya-J/code_nest/services/runner-allocator/internal/rabbitmq"
 	"github.com/Aadithya-J/code_nest/services/runner-allocator/internal/store"
 )
 
@@ -19,7 +20,7 @@ func main() {
 
 	storeInstance := store.NewInMemoryStore(cfg.MaxSlots, cfg.QueueSize)
 
-	kubernetesProvisioner, err := provisioner.NewKubernetesProvisioner("workspaces", cfg.WorkspaceImage)
+	kubernetesProvisioner, err := provisioner.NewKubernetesProvisioner(cfg.WorkspaceImage, cfg.KubeconfigPath)
 	if err != nil {
 		log.Fatalf("Failed to create Kubernetes provisioner: %v", err)
 	}
@@ -32,11 +33,22 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	go lifecycleManager.Start(ctx)
 
-	kafkaConsumer := consumer.NewKafkaConsumer(cfg.KafkaBrokerURL, cfg.KafkaTopicRequests, storeInstance, kubernetesProvisioner)
+	
+	authClient, err := auth.NewClient(cfg.AuthServiceURL)
+	if err != nil {
+		log.Fatalf("Failed to create auth client: %v", err)
+	}
+	defer authClient.Close()
+
+	rabbitMQConsumer, err := rabbitmq.NewConsumer(cfg.RabbitMQURL, storeInstance, kubernetesProvisioner, authClient)
+	if err != nil {
+		log.Fatalf("Failed to create RabbitMQ consumer: %v", err)
+	}
+	defer rabbitMQConsumer.Close()
 
 	go func() {
-		if err := kafkaConsumer.Start(ctx); err != nil {
-			log.Printf("Kafka consumer error: %v", err)
+		if err := rabbitMQConsumer.Start(ctx); err != nil {
+			log.Printf("RabbitMQ consumer error: %v", err)
 		}
 	}()
 

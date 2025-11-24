@@ -23,3 +23,13 @@ type QueuedUser struct {
 	GitHubRepo string    `json:"github_repo,omitempty"`
 	QueuedAt   time.Time `json:"queued_at"`
 }
+
+// SlotAssignment contains all parameters needed to assign a workspace slot
+type SlotAssignment struct {
+	ProjectID    string
+	SessionID    string
+	GitRepoURL   string
+	GitHubToken  string
+	RabbitMQURL  string
+	TargetBranch string
+}
