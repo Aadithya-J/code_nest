@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "github.com/Aadithya-J/code_nest/proto;proto";
+
+service AuthService {
+  rpc Signup(SignupRequest) returns (AuthResponse);
+  rpc Login(LoginRequest) returns (AuthResponse);
+  rpc HandleGoogleCallback(HandleGoogleCallbackRequest) returns (AuthResponse);
+  rpc GetGoogleAuthURL(GetGoogleAuthURLRequest) returns (GetGoogleAuthURLResponse);
+  rpc GetGitHubAuthURL(GetGitHubAuthURLRequest) returns (GetGitHubAuthURLResponse);
+  rpc HandleGitHubCallback(HandleGitHubCallbackRequest) returns (AuthResponse);
+  rpc GetGitHubAccessToken(GetGitHubAccessTokenRequest) returns (GetGitHubAccessTokenResponse);
+  rpc GenerateRepoToken(GenerateRepoTokenRequest) returns (GenerateRepoTokenResponse);
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+}
+
+message SignupRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  string token = 1;
+  string error = 2;
+}
+
+message GetGoogleAuthURLRequest {
+  string state = 1;
+}
+
+message GetGoogleAuthURLResponse {
+  string url = 1;
+}
+
+message HandleGoogleCallbackRequest {
+  string code = 1;
+}
+
+message GetGitHubAuthURLRequest {}
+
+message GetGitHubAuthURLResponse {
+  string url = 1;
+}
+
+message HandleGitHubCallbackRequest {
+  string user_id = 1;
+  int64 installation_id = 2;
+}
+
+message GetGitHubAccessTokenRequest {
+  string user_id = 1;
+}
+
+message GetGitHubAccessTokenResponse {
+  string token = 1;
+  string username = 2;
+}
+
+message GenerateRepoTokenRequest {
+  string user_id = 1;
+}
+
+message GenerateRepoTokenResponse {
+  string token = 1;
+  string username = 2;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string error = 3;
+}

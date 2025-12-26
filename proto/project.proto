@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package project;
+
+option go_package = "github.com/Aadithya-J/code_nest/proto;proto";
+
+enum ProjectStatus {
+  PROJECT_STATUS_UNSPECIFIED = 0;
+  STOPPED = 1;
+  STARTING = 2;
+  RUNNING = 3;
+  ERROR = 4;
+}
+
+message CreateProjectRequest {
+  string user_id = 1;
+  string name = 2;
+  string repo_url = 3;
+}
+
+message CreateProjectResponse {
+  string project_id = 1;
+}
+
+message StartWorkspaceRequest {
+  string project_id = 1; // UUID
+  string user_id = 2;
+}
+
+message StartWorkspaceResponse {
+  bool ok = 1;
+  ProjectStatus status = 2;
+  string atlas_id = 3; // "ws-{uuid}"
+}
+
+message StopWorkspaceRequest {
+  string project_id = 1;
+  string atlas_id = 2;
+}
+
+message StopWorkspaceResponse {
+  bool ok = 1;
+}
+
+message WebhookUpdateRequest {
+  string atlas_id = 1;
+  string status = 2; // READY | ERROR
+  string callback_token = 3; // webhook_secret from StartWorkspace
+}
+
+message WebhookUpdateResponse {
+  bool ok = 1;
+}
+
+message VerifyAndCompleteRequest {
+  string atlas_id = 1;
+  string callback_token = 2;
+  string status = 3; // READY | ERROR
+}
+
+message VerifyAndCompleteResponse {
+  bool ok = 1;
+  ProjectStatus status = 2;
+}
+
+message IsOwnerRequest {
+  string user_id = 1;
+  string project_id = 2; // atlas_id ("ws-{uuid}")
+}
+
+message IsOwnerResponse {
+  bool is_owner = 1;
+}
+
+service ProjectService {
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse);
+  rpc StartWorkspace(StartWorkspaceRequest) returns (StartWorkspaceResponse);
+  rpc StopWorkspace(StopWorkspaceRequest) returns (StopWorkspaceResponse);
+  rpc WebhookUpdate(WebhookUpdateRequest) returns (WebhookUpdateResponse);
+  rpc VerifyAndComplete(VerifyAndCompleteRequest) returns (VerifyAndCompleteResponse);
+  rpc IsOwner(IsOwnerRequest) returns (IsOwnerResponse);
+}

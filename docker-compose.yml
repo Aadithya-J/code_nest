@@ -1,0 +1,167 @@
+version: '3.8'
+
+networks:
+  code-nest-network:
+    driver: bridge
+
+volumes:
+  auth_pgdata:
+  auth_keys:
+  redis_data:
+  project_pgdata:
+
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: auth_postgres
+    restart: unless-stopped
+    networks:
+      - code-nest-network
+    environment:
+      POSTGRES_DB: ${AUTH_POSTGRES_DB:-auth_db}
+      POSTGRES_USER: ${AUTH_POSTGRES_USER:-auth_user}
+      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD:-auth_pass}
+    ports:
+      - "${AUTH_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - auth_pgdata:/var/lib/postgresql/data
+      - ./scripts/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_POSTGRES_USER:-auth_user} -d ${AUTH_POSTGRES_DB:-auth_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: auth_service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - code-nest-network
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:50051"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT:-50051}
+      - DATABASE_URL=postgres://${AUTH_POSTGRES_USER:-auth_user}:${AUTH_POSTGRES_PASSWORD:-auth_pass}@postgres:5432/${AUTH_POSTGRES_DB:-auth_db}?sslmode=disable
+      - DB_URL=postgres://${AUTH_POSTGRES_USER:-auth_user}:${AUTH_POSTGRES_PASSWORD:-auth_pass}@postgres:5432/${AUTH_POSTGRES_DB:-auth_db}?sslmode=disable
+      - DB_SCHEMA=${AUTH_DB_SCHEMA:-auth}
+      - JWT_SECRET=${AUTH_JWT_SECRET:-change_me_in_production}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL:-http://localhost:3000/auth/google/callback}
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:3000}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_SLUG=${GITHUB_APP_SLUG}
+      - GITHUB_PRIVATE_KEY_PATH=/app/github_app.pem
+    ports:
+      - "${AUTH_GRPC_PORT:-50051}:50051"
+      - "${AUTH_JWKS_PORT:-8081}:8081"
+    volumes:
+      - auth_keys:/app/keys
+      - ./github_app.pem:/app/github_app.pem:ro
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      - code-nest-network
+    command: [ "redis-server", "--appendonly", "yes" ]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  project-postgres:
+    image: postgres:16-alpine
+    container_name: project_postgres
+    restart: unless-stopped
+    networks:
+      - code-nest-network
+    environment:
+      POSTGRES_DB: ${PROJECT_POSTGRES_DB:-project_db}
+      POSTGRES_USER: ${PROJECT_POSTGRES_USER:-project_user}
+      POSTGRES_PASSWORD: ${PROJECT_POSTGRES_PASSWORD:-project_pass}
+    volumes:
+      - project_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${PROJECT_POSTGRES_USER:-project_user}", "-d", "${PROJECT_POSTGRES_DB:-project_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "${PROJECT_POSTGRES_PORT:-5433}:5432"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    container_name: gateway
+    depends_on:
+      auth-service:
+        condition: service_started
+      project-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - code-nest-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      AUTH_RPC_URL: auth-service:50051
+      PORT: ${GATEWAY_PORT:-3000}
+      REDIS_ADDR: redis:6379
+      PROJECT_RPC_URL: project-service:50052
+      GRPC_TLS_ENABLED: "false"
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+
+  project-service:
+    build:
+      context: .
+      dockerfile: services/project-service/Dockerfile
+    container_name: project_service
+    depends_on:
+      auth-service:
+        condition: service_started
+      project-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - code-nest-network
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:50052"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      PROJECT_GRPC_PORT: ${PROJECT_GRPC_PORT:-50052}
+      PROJECT_DB_URL: postgres://${PROJECT_POSTGRES_USER:-project_user}:${PROJECT_POSTGRES_PASSWORD:-project_pass}@project-postgres:5432/${PROJECT_POSTGRES_DB:-project_db}?sslmode=disable
+      REDIS_ADDR: redis:6379
+      AUTH_RPC_URL: auth-service:50051
+      GATEWAY_URL: ${GATEWAY_URL:-http://localhost:3000}
+      ATLAS_BASE_URL: ${ATLAS_BASE_URL:-http://host.docker.internal:8080}
+    ports:
+      - "${PROJECT_GRPC_PORT:-50052}:50052"

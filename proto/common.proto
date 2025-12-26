@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "github.com/Aadithya-J/code_nest/proto;proto";
+
+// Basic project reference used across services.
+message ProjectRef {
+  string project_id = 1; // UUID
+  string atlas_id = 2;   // "ws-{uuid}"
+}
