@@ -1,6 +1,8 @@
 # Code Nest
 
-A cloud-based IDE platform for creating and managing containerized development workspaces. Users authenticate via email/password or OAuth (Google/GitHub), create projects linked to GitHub repositories, and get access to live workspaces with a remote terminal and file editor.
+A cloud-based IDE platform for creating and managing containerized development workspaces. Users authenticate via email/password or OAuth (Google/GitHub), create projects linked to GitHub repositories, and get access to live workspaces with a remote terminal and file editor
+
+It is a cloud development platform similar to github codespaces.
 
 ---
 
